@@ -9,6 +9,7 @@ library(anytime)
 library(shinythemes)
 library(leaflet)
 library(tidyverse)
+library(DT)
 
 #data loading and formatting--------------------------------------------------------------------------------------------------------------
 
@@ -25,9 +26,7 @@ stat_location$Site.Type <- gsub("SMOIL", "Smoil", stat_location$Site.Type)
 
 #format the dates from flow 
 BYS$bys.dt2= as.POSIXct(BYS$bys.dt2, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
-
-#aggregate precip data to 15 min
-#data$timestamp <- as.POSIXct(data$timestamp)
+CLD$cld.dt2= as.POSIXct(CLD$cld.dt2, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 
 # Aggregate the data to 15-minute intervals
 precip_data.15 <- precip %>%
@@ -36,13 +35,15 @@ precip_data.15 <- precip %>%
 
 #merge precip with flow
 merged_dataset <- merge(BYS, precip_data.15, by.x = "bys.dt2", by.y = "TIMESTAMP", all = TRUE)
+merged_dataset1 <- merge(CLD,merged_dataset, by.x = "cld.dt2", by.y = "bys.dt2", all = TRUE)
 
-date = merged_dataset$bys.dt2 #dates at daily format, however you can use any temporal resolution
-flow = merged_dataset$bys.q4 # flow data
-rainfall = merged_dataset$Rain_mm_Tot # rainfall data
+date = merged_dataset1$cld.dt2 #dates at daily format, however you can use any temporal resolution
+BYS = merged_dataset1$bys.q4 # flow data
+CLD = merged_dataset1$cld.q3 
+rainfall = merged_dataset1$Rain_mm_Tot # rainfall data
 
-CLD$cld.dt2
-CLD$cld.q3
+#CLD$cld.dt2
+#CLD$cld.q3
 
 rainAx = list(
   overlaying = "y",
@@ -65,21 +66,20 @@ ui <- fluidPage(
   titlePanel(strong("Streamflow Data Dashboard")),
   
   sidebarLayout(
-    
+
+    #widgets-----------------------------------------------------------------------------------------------------------------------
     sidebarPanel(
       
-      #widgets-----------------------------------------------------------------------------------------------------------------------
-      
-      selectInput(
+      selectizeInput(
         inputId="select_station",
         label="Select Station:",
-        choices = stat_location$Name,
-        selected="Boys Creek"),
+        choices = stat_location$CW3E.Code,
+        selected="BYS"),
       
       checkboxGroupInput(
         inputId = "var",
         label = "Select Variable(s):",
-        choices = list("Streamflow", "Precipitation"),
+        choices = list("Streamflow", "Level"),           #precip is fixed, so did not include 
         selected="Streamflow"),
       
       dateRangeInput(
@@ -99,28 +99,26 @@ ui <- fluidPage(
       
       downloadButton(
         outputId = "download_data",
-        label = "Download CSV:"),
-      
-      br(), br(), br(), br(), br(),
-      
-      dateInput(
-        inputId="choose_date",
-        label="See Values for a Specific Date:",
-        value="2014-01-01"),
-      
-      dataTableOutput(
-        outputId="chosen_date")
-      
-    ),
+        label = "Download CSV:")),                
     
-    mainPanel(
+     mainPanel(
       
       tabsetPanel(type = "tabs",
-                  tabPanel("Hydrograph", plotlyOutput("graph"),height="80vh",plotlyOutput("var"),plotlyOutput("date_range")),
-                  tabPanel("Station Map",leafletOutput(outputId = "map",height="60vh")),
-                  tabPanel("Stream Images", imageOutput(outputId = "recent_image")),
-                  tabPanel("About", textOutput("info"),
-                           h3("Station Names"),
+                  
+                  tabPanel("Hydrograph", height="80vh",
+                           plotlyOutput("graph"),
+                           plotlyOutput("selected_var"),
+                           plotlyOutput("selected_dates"),
+                           imageOutput("recent_image")),
+                  
+                  tabPanel("Station Map",
+                           leafletOutput("map",height="40vh"),
+                           br(),br(),
+                           dataTableOutput("data_table")),
+                  
+                  tabPanel("About", 
+                           textOutput("info"),  
+                           h3("Site Type"),          #talk about each specific site type?
                            h3("Data"),
                            p("talk about where data came from, etc"))),
       
@@ -136,27 +134,26 @@ server <- function(input,output,session){
   
   #hydrograph--------------------------------------------------------------------------------------------------------------------  
   
+  y <- reactive(input$select_station)
+  
   output$graph <- renderPlotly({
-    req(input$select_station)
     plot_ly() %>%
+      
       add_trace(
-        x=~date, y=~flow,
-        type="scatter", mode="lines", line = list
+        x=~date, y=~get(input$select_station),                  #need to add chosen dates, what is the output labeled as?
+        type="scatter", mode="lines", line = list               #(input$date_range[1]:input$date_range[2])
         (color = '#2fa839', width = 1, 
-          dash = 'solid'),name = 'Streamflow') %>%        
-      #add_trace(
-      #x=CLD$cld.dt2, y=CLD$cld.q3,
-      #type="scatter", mode="lines", line = list
-      #(color = '#2fa839', width = 1, 
-      #dash = 'solid'),name =input$select_station[2], "- Streamflow") %>%       
+          dash = 'solid'),name = "Streamflow") %>%        
+      
       add_trace(
         x=~date, y=~rainfall,
         type="bar", yaxis="y2", marker = list
-        (color ="blue",width = 1),name = 'Precipitation - BCC') %>%    
+        (color ="blue",width = 1),name = 'Precipitation - BCC') %>%  
+      
       layout(#title = "Rainfall-Streamflow",
         xaxis =list
-        (title = "time (daily)"), yaxis=list
-        (title="Q  ft³/s",range=c(0,60)),yaxis2=rainAx)
+        (title = "Time (daily)"), yaxis=list
+        (title="Streamflow (ft³/s)",range=c(0,60)),yaxis2=rainAx)
   })
   
   #map of stations-------------------------------------------------------------------------------------------------------------
@@ -176,22 +173,29 @@ server <- function(input,output,session){
                              "Elevation:", stat_location$Elevation..Approx..m.,"m", "<br>",
                              "(",stat_location$Latitude,stat_location$Longitude,")"
                  )) %>%
-      addLegend("bottomleft", pal=RdYlBu, values=stat_location$Site.Type, title="Site Type",opacity=1)
+      addLegend("topleft", pal=RdYlBu, values=stat_location$Site.Type, title="Site Type",opacity=1)
   })
   
+  #data table under station map-----------------------------------------------------------------------------------------------------
+
+  output$data_table <- DT::renderDataTable({DT::datatable(stat_location, rownames=FALSE,
+                                          colnames = c("Site Name","Watershed","CW3E Code",
+                                                       "CDEC Code","CNRFC Code","Latitude",
+                                                       "Longitude","Elevation(m)","Site Type"),
+                                          list(lengthMenu = c(5,10,20,45), pageLength = 5))})
+
   #download data------------------------------------------------------------------------------------------------------------------
-  
+
   output$download_data <- downloadHandler(
     filename = function(){paste("GitHub/R-shiny/Data/Stream/",stat_location$CW3E.Code,"_LogLog_Q_GM.csv")},
     content=function(file){write.csv(data,file)}
   )
   
-  #choose specific date to output flow/precip/level--------------------------------------------------------------------------------------
+  #image for selected station----------------------------------------------------------------------------------------------------------------
   
-  output$choose_date <- renderDataTable({
-    req(input$choose_date)
-    
-  })
+  #output$recent_image <- renderImage({
+    #req(input$select_station)
+      #})
   
 }
 
