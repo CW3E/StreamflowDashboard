@@ -37,13 +37,11 @@ precip_data.15 <- precip %>%
 merged_dataset <- merge(BYS, precip_data.15, by.x = "bys.dt2", by.y = "TIMESTAMP", all = TRUE)
 merged_dataset1 <- merge(CLD,merged_dataset, by.x = "cld.dt2", by.y = "bys.dt2", all = TRUE)
 
-date = merged_dataset1$cld.dt2 #dates at daily format, however you can use any temporal resolution
+date = merged_dataset1$cld.dt2 #dates at daily format
 BYS = merged_dataset1$bys.q4 # flow data
 CLD = merged_dataset1$cld.q3 
 rainfall = merged_dataset1$Rain_mm_Tot # rainfall data
-
-#CLD$cld.dt2
-#CLD$cld.q3
+date1 = as.Date(merged_dataset1$cld.dt2)
 
 rainAx = list(
   overlaying = "y",
@@ -71,24 +69,32 @@ ui <- fluidPage(
     sidebarPanel(
       
       selectizeInput(
-        inputId="select_station",
-        label="Select Station:",
+        inputId = "select_station",
+        label = "Select Station:",
         choices = stat_location$CW3E.Code,
-        selected="BYS"),
+        selected = "BYS"), br(),
       
       checkboxGroupInput(
         inputId = "var",
         label = "Select Variable(s):",
         choices = list("Streamflow", "Level"),           #precip is fixed, so did not include 
-        selected="Streamflow"),
+        selected="Streamflow"), br(),
       
-      dateRangeInput(
+      sliderInput(
         inputId = "date_range",
         label = "Select Date Range:",
-        start = "2017-09-01",
-        end = "2022-01-01",
-        min = "2017-09-01",
-        max = "2022-01-01"),
+        min = as.Date("2017-09-01","%Y-%m-%d"),
+        max = as.Date("2022-01-01","%Y-%m-%d"),
+        value=c(as.Date("2017-09-01","%Y-%m-%d"),as.Date("2022-01-01","%Y-%m-%d")),
+        timeFormat="%Y-%m-%d"),
+      
+      #dateRangeInput(
+      #  inputId = "date_range",
+      #  label = "Select Date Range:",
+      #  start = "2017-09-01",
+      #  end = "2022-01-01",
+      #  min = "2017-09-01",
+      #  max = "2022-01-01"),
       
       br(),br(),br(),br(),
       
@@ -105,22 +111,25 @@ ui <- fluidPage(
       
       tabsetPanel(type = "tabs",
                   
-                  tabPanel("Hydrograph", height="80vh",
+                  tabPanel("Hydrograph", height = "80vh",
                            plotlyOutput("graph"),
                            plotlyOutput("selected_var"),
                            plotlyOutput("selected_dates"),
                            imageOutput("recent_image")),
                   
                   tabPanel("Station Map",
-                           leafletOutput("map",height="40vh"),
+                           leafletOutput("map", height = "40vh"),
                            br(),br(),
                            dataTableOutput("data_table")),
                   
                   tabPanel("About", 
                            textOutput("info"),  
-                           h3("Site Type"),          #talk about each specific site type?
-                           h3("Data"),
-                           p("talk about where data came from, etc"))),
+                           h4("Hydrographs:"),
+                           p("Present a time history of streamflow"),          
+                           h4("Data Sources:"),
+                           p("talk about where data came from, etc"),
+                           h4("Data Collection:"),
+                           p("what methods used to collect data"))),
       
       imageOutput(outputId = "logo.png")
       
@@ -134,19 +143,22 @@ server <- function(input,output,session){
   
   #hydrograph--------------------------------------------------------------------------------------------------------------------  
   
-  y <- reactive(input$select_station)
+  y <- reactive(input$select_station) 
+  #x <- reactive(dplyr::filter(date >= input$date_range[1], date <= input$date_range[2])) %>%
   
   output$graph <- renderPlotly({
     plot_ly() %>%
-      
       add_trace(
-        x=~date, y=~get(input$select_station),                  #need to add chosen dates, what is the output labeled as?
-        type="scatter", mode="lines", line = list               #(input$date_range[1]:input$date_range[2])
+        #x=~filter(between(date1, input$date_range[1], input$date_range[2])),
+        #x=~subset(date1, date1 >= input$date_range[1], date1 <= input$date_range[2]),
+        y=~get(input$select_station),                  
+        type="scatter", mode="lines", line = list               
         (color = '#2fa839', width = 1, 
           dash = 'solid'),name = "Streamflow") %>%        
       
       add_trace(
-        x=~date, y=~rainfall,
+        #x=~subset(date, date >= input$date_range[1], date <= input$date_range[2]), 
+        y=~rainfall,
         type="bar", yaxis="y2", marker = list
         (color ="blue",width = 1),name = 'Precipitation - BCC') %>%  
       
