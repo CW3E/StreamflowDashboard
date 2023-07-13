@@ -69,7 +69,7 @@ ui <- fluidPage(
 
   tabsetPanel(type = "tabs",
                   
-    tabPanel("Hydrograph", 
+    tabPanel("Hydrograph",
                           
       sidebarLayout(   
                         
@@ -88,20 +88,20 @@ ui <- fluidPage(
                        selected="Streamflow"), br(),
                      
                      #sliderInput(
-                      # inputId = "date_range",
-                       #label = "Select Date Range:",
-                       #min = as.Date("2017-09-01"),
-                       #max = as.Date("2022-01-01"),
+                     #  inputId = "date_range",
+                      # label = "Select Date Range:",
+                     #  min = as.Date("2017-09-01"),
+                      # max = as.Date("2022-01-01"),
                        #value = c(as.Date("2017-09-01"), as.Date("2022-01-01")),
                        #timeFormat="%Y-%m-%d"), 
                      
                      sliderInput(
                        inputId = "date_range",
                        label = "Select Date Range:",
-                       min = as.Date.POSIXct("2017-09-01","%Y-%m-%d %H:%M:%S"),
-                       max = as.Date.POSIXct("2022-01-01","%Y-%m-%d %H:%M:%S"),
-                       value=c(as.Date.POSIXct("2017-09-01","%Y-%m-%d %H:%M:%S"),
-                               as.Date.POSIXct("2022-01-01","%Y-%m-%d %H:%M:%S")),
+                       min = as.POSIXct("2017-09-09 12:30:00"),
+                       max = as.POSIXct("2022-10-25 07:00:00"),
+                       value=c(as.POSIXct("2017-09-09 12:30:00"),
+                               as.POSIXct("2022-10-25 07:00:00")),
                        timeFormat="%Y-%m-%d %H:%M:%S"),
                      
                      br(),br(),br(),br(),
@@ -148,15 +148,20 @@ server <- function(input,output,session){
   #hydrograph--------------------------------------------------------------------------------------------------------------------  
   
   y <- reactive({input$select_station})
-  x <- reactive({input$date_range})
   
+  #x <- reactive({input$date_range})
   #reactiveDate <- reactive({date %>% filter(date>=input$date_range[1] & date<=input$date_range[2])})
   #add reactiveDate() in add_trace() if trying above function
   #error message: no applicable method for 'filter_' applied to an object of class "logical" since you cant filter POSIXct data i guess
 
   output$graph <- renderPlotly({
+    
+    filteredData <- subset(date, date >= input$date_range[1] & date <= input$date_range[2])
+    #date1<-as.POSIXct(input$date_range, timeFormat="%Y-%m-%d %H:%M:%S")
+    #subset_date <- subset(date1, date >= date1[1] & date <= date1[2])
+    
     plot_ly() %>%
-      add_trace(
+      add_trace(filteredData,
         #dplyr::filter(date >= input$date_range[1], date <= input$date_range[2]
         #x=~filter(between(date1, input$date_range[1], input$date_range[2])),
         #x=~subset(date1, date1 >= input$date_range[1], date1 <= input$date_range[2]),
@@ -168,7 +173,7 @@ server <- function(input,output,session){
         (color = '#2fa839', width = 1, 
           dash = 'solid'),name = "Streamflow") %>%        
       
-      add_trace(
+      add_trace(filteredData,
         x=~date,
         y=~rainfall,
         type="bar", yaxis="y2", marker = list
@@ -176,8 +181,8 @@ server <- function(input,output,session){
       
       layout(#title = "Rainfall-Streamflow",
         xaxis =list
-        (title = "Time (daily)"), yaxis=list
-        (title="Streamflow (ft³/s)",range=c(0,60)),yaxis2=rainAx)
+        (title = "time (daily)"), yaxis=list
+        (title="Q  ft³/s",range=c(0,60)),yaxis2=rainAx)
   })
   
   #map of stations-------------------------------------------------------------------------------------------------------------
