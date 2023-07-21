@@ -83,21 +83,20 @@ rainAx = list(overlaying = "y",side = "right",title = "Precipitation (mm)",range
 #set wd to //Skyriver/CW3E_data/
 setwd("Z:/")
 
-#manual streamflow data, this used to work and then stopped working and i dont know why :(
-#was trying this way to see if its faster but it doenst work, issue with the lapply function and reading path of file
-#manual_data = list.files(path = "CW3E_Streamflow_Archive/Data/",pattern="*Manual_Q_R.xlsx")
-#manual = lapply(manual_data,read_xlsx)
+#alternative to read in manual data, unsure which is faster
+manual_data = list.files(path = "CW3E_Streamflow_Archive/Data/",pattern="*Manual_Q_R.xlsx",full.names=TRUE)
+manual = lapply(manual_data,read_xlsx)
 
 #stage data, same issue as above
-#stage_data = list.files(path = "CW3E_Streamflow_Archive/Data/All_Barocorrected_Level/",pattern="*.csv")
-#stage = lapply(stage_data,read.csv)
+stage_data = list.files(path = "CW3E_Streamflow_Archive/Data/All_Barocorrected_Level/",pattern="*.csv",full.names=TRUE)
+stage = lapply(stage_data,read.csv)
 
-#stage[[1]]$TIMESTAMP.UTC=as.POSIXct(stage[[1]]$TIMESTAMP.UTC,tz="UTC",format= "%Y-%m-%d %H:%M:%S")
-#stage[[2]]$TIMESTAMP.UTC=as.POSIXct(stage[[2]]$TIMESTAMP.UTC,tz="UTC",format= "%Y-%m-%d %H:%M:%S")
-#stage[[3]]$TIMESTAMP.UTC=as.POSIXct(stage[[3]]$TIMESTAMP.UTC,tz="UTC",format= "%Y-%m-%d %H:%M:%S")
-#stage[[4]]$TIMESTAMP.UTC=as.POSIXct(stage[[4]]$TIMESTAMP.UTC,tz="UTC",format= "%Y-%m-%d %H:%M:%S")
-#stage[[5]]$TIMESTAMP.UTC=as.POSIXct(stage[[5]]$TIMESTAMP.UTC,tz="UTC",format= "%Y-%m-%d %H:%M:%S")
-#stage[[6]]$TIMESTAMP.UTC=as.POSIXct(stage[[6]]$TIMESTAMP.UTC,tz="UTC",format= "%Y-%m-%d %H:%M:%S")
+stage[[1]]$TIMESTAMP.UTC=as.POSIXct(stage[[1]]$TIMESTAMP.UTC,tz="UTC",format= "%Y-%m-%d %H:%M:%S")
+stage[[2]]$TIMESTAMP.UTC=as.POSIXct(stage[[2]]$TIMESTAMP.UTC,tz="UTC",format= "%Y-%m-%d %H:%M:%S")
+stage[[3]]$TIMESTAMP.UTC=as.POSIXct(stage[[3]]$TIMESTAMP.UTC,tz="UTC",format= "%Y-%m-%d %H:%M:%S")
+stage[[4]]$TIMESTAMP.UTC=as.POSIXct(stage[[4]]$TIMESTAMP.UTC,tz="UTC",format= "%Y-%m-%d %H:%M:%S")
+stage[[5]]$TIMESTAMP.UTC=as.POSIXct(stage[[5]]$TIMESTAMP.UTC,tz="UTC",format= "%Y-%m-%d %H:%M:%S")
+stage[[6]]$TIMESTAMP.UTC=as.POSIXct(stage[[6]]$TIMESTAMP.UTC,tz="UTC",format= "%Y-%m-%d %H:%M:%S")
 
 #user interface--------------------------------------------------------------------------------------------------------------
 
@@ -182,20 +181,25 @@ ui <- fluidPage(
 server <- function(input,output,session){
   
   #hydrograph--------------------------------------------------------------------------------------------------------------------  
+  #when I run the app, I get the following message in R:
+    #Warning: Error in tibble::as_tibble: All columns in a tibble must be vectors.
+    #✖ Column `x` is NULL.
+  
+  #I think this has to do with the date format (POSIXct), although I am not sure. All the columns are the same size.
+  #all packages used in this script are updated
+  #on the actual app when it opens up, "[object Object]" pops up as an error message 
   
   y <- reactive({input$select_station})
  
   output$graph <- renderPlotly({
     
-    #this is for date slider, doesn't really work but also doesn't create errors so just leaving it for now
     filteredData <- subset(date, date >= input$date_range[1] & date <= input$date_range[2])
 
     plot_ly() %>%
       
-      #adding points for manual streamflow data, also attempted with add_trace below
       add_markers(
                   x=~date,
-                  y=~CLD_M,
+                  y=~manual[[2]]$Q.cfs,
                   type="scatter",
                   marker = list
                   (color ="blue"),name="Manual Streamflow") %>%
@@ -223,7 +227,7 @@ server <- function(input,output,session){
       layout(
         xaxis =list
         (title = "Time (daily)"), yaxis=list
-        (title="Q (ft³/s)",range=c(0,60)),yaxis2=rainAx)
+        (title="Q (ft³/s)",range=c(0,60)),yaxis2=rainAx) 
   })
   
   #map of stations-------------------------------------------------------------------------------------------------------------
