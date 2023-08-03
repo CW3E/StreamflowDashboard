@@ -5,11 +5,11 @@ library(ggplot2)
 library(dplyr)
 library(plotly) 
 library(readxl)
-library(anytime)
 library(shinythemes)
 library(leaflet)
-library(tidyverse)
 library(DT)
+library(tidyverse)
+library(anytime)
 
 #data loading and formatting--------------------------------------------------------------------------------------------------------------
 
@@ -18,6 +18,7 @@ setwd("C:/Users/anahi/OneDrive/Documents")
 #station location data from github
 stat_location <- read.csv("GitHub/R-shiny/Data/Stream/CW3E_Stations_all.csv")
 stat_location$Site.Type <- gsub("SMOIL", "Smoil", stat_location$Site.Type)
+stat_location2 <- read.csv("/Users/anahi/OneDrive/Documents/GitHub/CW3E.StreamflowDashBoard/station_location2.csv")
 
 #precipitation data from github
 precip <- read_excel("GitHub/R-shiny/Data/Stream/BCC_all_precip.xlsx")
@@ -30,13 +31,16 @@ precip15 <- precip %>%group_by(TIMESTAMP=cut(TIMESTAMP,"15 mins"))%>%summarise(R
 #DRW <- read.table("//Skyriver/CW3E_data/CW3E_SurfaceMet_Archive/DRW/Deerwood_TwoMinWS.dat")
 #WDG <- read.table("//Skyriver/CW3E_data/CW3E_SurfaceMet_Archive/WDG/WindyGap_TwoMinWS.dat",fill=TRUE)
 
+#set wd to //Skyriver/CW3E_data/
+setwd("Z:/")
+
 #streamflow data
-BYS_Q <- read.csv("//Skyriver/CW3E_data/CW3E_Streamflow_Archive/BYS/Processed/BYS_LogLog_Q.csv")
-CLD_Q <- read.csv("//Skyriver/CW3E_data/CW3E_Streamflow_Archive/CLD/Processed/CLD_LogLog_Q.csv")
-MEW_Q <- read.csv("//Skyriver/CW3E_data/CW3E_Streamflow_Archive/MEW/Processed/MEW_LogLog_Q.csv")
-MLL_Q <- read.csv("//Skyriver/CW3E_data/CW3E_Streamflow_Archive/MLL/Processed/MLL_LogLog_Q.csv")
-PRY_Q <- read.csv("//Skyriver/CW3E_data/CW3E_Streamflow_Archive/PRY/Processed/PRY_LogLog_Q.csv")
-WHT_Q <- read.csv("//Skyriver/CW3E_data/CW3E_Streamflow_Archive/WHT/Processed/WHT_LogLog_Q.csv")
+BYS_Q <- read.csv("/CW3E_Streamflow_Archive/BYS/Processed/BYS_LogLog_Q.csv")
+CLD_Q <- read.csv("/CW3E_Streamflow_Archive/CLD/Processed/CLD_LogLog_Q.csv")
+MEW_Q <- read.csv("/CW3E_Streamflow_Archive/MEW/Processed/MEW_LogLog_Q.csv")
+MLL_Q <- read.csv("/CW3E_Streamflow_Archive/MLL/Processed/MLL_LogLog_Q.csv")
+PRY_Q <- read.csv("/CW3E_Streamflow_Archive/PRY/Processed/PRY_LogLog_Q.csv")
+WHT_Q <- read.csv("/CW3E_Streamflow_Archive/WHT/Processed/WHT_LogLog_Q.csv")
 
 #format streamflow data timestamps
 BYS_Q$bys.dt2= as.POSIXct(BYS_Q$bys.dt2, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
@@ -47,7 +51,7 @@ PRY_Q$pry.dt2= as.POSIXct(PRY_Q$pry.dt2, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 WHT_Q$wht.dt2= as.POSIXct(WHT_Q$wht.dt2, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 
 #manual streamflow data
-#BYS_QM <- read_xlsx("Z:/CW3E_Streamflow_Archive/Data/BYS_Manual_Q_R.xlsx")
+#BYS_QM <- read_xlsx("Z:/CW3E_Streamflow_Archive/Data/BYS_Manual_Q_R.xlsx")      #for bys, need to edit excel sheet first 
 CLD_QM <- read_xlsx("Z:/CW3E_Streamflow_Archive/Data/CLD_Manual_Q_R.xlsx")
 MEW_QM <- read_xlsx("Z:/CW3E_Streamflow_Archive/Data/MEW_Manual_Q_R.xlsx")
 MLL_QM <- read_xlsx("Z:/CW3E_Streamflow_Archive/Data/MLL_Manual_Q_R.xlsx")
@@ -88,10 +92,6 @@ merged <- merge(MLL_QM,merged, by = "Date.Time", all=TRUE)
 merged <- merge(PRY_QM,merged, by = "Date.Time", all=TRUE)
 merged <- merge(WHT_QM,merged, by = "Date.Time", all=TRUE)
 
-#attempts to merge all streamflow data at once,error: 'join columns in x must be present in data'
-#merge_Q <- list(BYS_Q,CLD_Q,MEW_Q,MLL_Q,PRY_Q,WHT_Q)
-#merged_Q <- merge_Q %>% reduce(full_join, by=join_by("*dt2"))
-
 CLD_M = merged$Q.cfs.CLD
 MEW_M = merged$Q.cfs.MEW
 MLL_M = merged$Q.cfs.MLL
@@ -107,14 +107,13 @@ date = merged$Date.Time
 rain = merged$Rain_mm_Tot 
 
 #set right y axis for precipitation
-rainAx = list(overlaying = "y",side = "right",title = "Precipitation (mm)",range = c(300,0),showgrid=FALSE)
+rainAx = list(overlaying="y",side="right",title="Precipitation (mm)",range=c(300,0),showgrid=FALSE)
 
-#set wd to //Skyriver/CW3E_data/
-setwd("Z:/")
+#set left y axis for level
+levelAx = list(side="left",title="Level (inches)",range=c(0,50),showgrid=FALSE)
 
-#alternative to read in manual data, unsure which is faster
-#manual_data = list.files(path = "CW3E_Streamflow_Archive/Data/",pattern="*Manual_Q_R.xlsx",full.names=TRUE)
-#manual = lapply(manual_data,read_xlsx)
+#set left y axis for discharge
+dischargeAx = list(side="left",title="Discharge (ft³/s)",showgrid=FALSE)
 
 #user interface--------------------------------------------------------------------------------------------------------------
 
@@ -126,7 +125,7 @@ ui <- fluidPage(
     title=tags$a(href='https://cw3e.ucsd.edu/overview/',tags$img(src='logo.png', height = 80, width = 300), target="_blank"),
     tags$head(tags$link(rel = "icon", type = "image/png", href = "logo.png"))),
   
-  titlePanel(strong("Streamflow Data Dashboard")),
+  titlePanel(strong("Streamflow Dashboard")),
   
   tabsetPanel(type = "tabs",
               
@@ -140,19 +139,19 @@ ui <- fluidPage(
                                         inputId = "select_station",
                                         label = "Select Station:",
                                         choices = stat_location$CW3E.Code,
-                                        selected = "BYS"), br(),
+                                        selected = "CLD"), 
                                       
-                                      checkboxGroupInput(
+                                      selectizeInput(
                                         inputId = "var",
-                                        label = "Select Variable(s):",
-                                        choices = list("Streamflow", "Level"), 
-                                        selected="Streamflow"), 
+                                        label = "Select Variable:",
+                                        choices = list("Discharge", "Level"), 
+                                        selected="Discharge"), 
                                       
-                                      p(strong("Notes on Precipitation Data:")),
+                                      p(strong("Notes on Precipitation:")),
                                       p("To add or remove precipitation from the hydrograph, click on 'Precipitation' in
                                          the legend located in the top right corner of the hydrograph."),
                                       p("*Please note that precipitation data will be taken from the closest available 
-                                         surface met station, which is different from the selected streamflow station."),
+                                         surface meteorology station, which is different from the streamflow stations."),
                                       br(),
                                       
                                       sliderInput(
@@ -163,54 +162,44 @@ ui <- fluidPage(
                                         value=c(as.POSIXct("2015-09-09 12:30:00"),
                                                 as.POSIXct("2023-10-25 07:00:00")),
                                         timeFormat="%Y-%m-%d %H:%M:%S")),
-                                      
-                                      #br(),br(),br(),br(),
-                                      
-                                      #selectInput(
-                                       # inputId = "dataset",
-                                        #label = "Choose Dataset to Download:",
-                                        #choices = stat_location$CW3E.Code,
-                                        #selected = "BYS"),
-                                      
-                                      #downloadButton(
-                                       #outputId = "download_data",
-                                        #label = "Download CSV:")),
-                         
+
                          mainPanel(position = "right",
                                    plotlyOutput("graph"),
+                                   br(),br(),
+                                   dataTableOutput("data_table2"),
                                    plotlyOutput("selected_var"),
                                    plotlyOutput("selected_dates")
                                    #imageOutput("recent_image")
                          )
                        )),                         
               
-              tabPanel("Station Map",
+              tabPanel("Location Map",
                        column(6, leafletOutput("map", height = "70vh")),
                        column(6, dataTableOutput("data_table"))),
               
               tabPanel("About", 
                        textOutput("info"),  
-                       h3("Hydrographs:"),
-                       p("Present a time history of streamflow"),          
-                       h3("Data Sources:"),
-                       p("talk about where data came from, etc"),
+                       h3("Introduction:"),
+                       p("This application displays streamflow and precipitation data gathered by CW3E. Source code is available at the",a("CW3E Streamflow Dashboard GitHub Repository",href="https://github.com/anahitajensen/CW3E.StreamflowDashBoard")),
+                       h3("Hydrograph:"),
+                       p("A hydrograph is a chart showing, most often, river stage (height of the water above an arbitrary altitude) and streamflow (amount of water, usually in cubic feet per second). Other properties, such as rainfall and water-quality parameters can also be plotted."),          
                        h3("Data Collection:"),
-                       h4(em("Discharge:")),
-                       p("Discharge is measured through multiple methods, including using a current meter and ADCP."),
-                       p("When using a current meter, a stream channel cross section is first divided into numerous vertical subsections. In each subsection, the area is obtained by measuring the width and depth of the subsection, and the water velocity is determined using a current meter. The discharge in each subsection is computed by multiplying the subsection area by the measured velocity. The total discharge is then computed by summing the discharge of each subsection."),
-                       p("When using ADCP (Acoustic Doppler Current Profiler), the Doppler Effect is used to determine water velocity by sending a sound pulse into the water and measuring the change in frequency of that sound pulse reflected back to the ADCP by sediment or other particulates being transported in the water. The change in frequency, or Doppler Shift, that is measured by the ADCP is translated into water velocity. The sound is transmitted into the water from a transducer to the bottom of the river and receives return signals throughout the entire depth. The ADCP also uses acoustics to measure water depth by measuring the travel time of a pulse of sound to reach the river bottom at back to the ADCP."),
-                       p("To make a discharge measurement, the ADCP is mounted onto a boat or into a small watercraft with its acoustic beams directed into the water from the water surface. The ADCP is then guided across the surface of the river to obtain measurements of velocity and depth across the channel. The river-bottom tracking capability of the ADCP acoustic beams or a Global Positioning System (GPS) is used to track the progress of the ADCP across the channel and provide channel-width measurements. Using the depth and width measurements for calculating the area and the velocity measurements, the discharge is computed by the ADCP using discharge = area x velocity, similar to the conventional current-meter method."),
-                       h4(em("Stage (level):")),
-                       p("Stage is measured using Solinst leveloggers and barologgers."),
-                       p("Leveloggers measure absolute pressure (water pressure + atmospheric pressure) expressed in feet, meters, centimeters, psi, kPa, or bar."),
-                       p("The most accurate method of obtaining changes in water level is to compensate for atmospheric pressure fluctuations using a Barologger 5, avoiding time lag in the compensation. The Barologger 5 is set above high water level in one location on site. One Barologger can be used to compensate all Leveloggers in a 30 km (20 mile) radius and/or with every 300 m (1000 ft.) change in elevation."),
-                       p("The Levelogger Software Data Compensation Wizard automatically produces compensated data files using the synchronized data files from the Barologger and Leveloggers on site."),
+                       h4(em("Discharge (Flow):")),
+                       p("Discharge data on this page is measured through multiple methods that will be described in detail below."),
+                       p("When using a",strong("current meter"),", a stream channel cross section is first divided into numerous vertical subsections. In each subsection, the area is obtained by measuring the width and depth of the subsection, and the water velocity is determined using a current meter. The discharge in each subsection is computed by multiplying the subsection area by the measured velocity. The total discharge is then computed by summing the discharge of each subsection."),
+                       p("When using",strong("ADCP (Acoustic Doppler Current Profiler)"),", the Doppler Effect is used to determine water velocity by sending a sound pulse into the water and measuring the change in frequency of that sound pulse reflected back to the ADCP by sediment or other particulates being transported in the water. The ADCP also uses acoustics to measure water depth by measuring the travel time of a pulse of sound to reach the river bottom at back to the ADCP. To make a discharge measurement, the ADCP is mounted onto a boat or into a small watercraft with its acoustic beams directed into the water from the water surface. The ADCP is then guided across the surface of the river to obtain measurements of velocity and depth across the channel. The river-bottom tracking capability of the ADCP acoustic beams or a Global Positioning System (GPS) is used to track the progress of the ADCP across the channel and provide channel-width measurements. Using the depth and width measurements for calculating the area and the velocity measurements, the discharge is computed by the ADCP using discharge = area x velocity, similar to the conventional current-meter method."),
+                       p(strong("Computer Vision Stream Gaging (CVSG)")," captures stereo camera footage of the water surface, which is analyzed to estimate water level, surface velocities, and gauged discharge.  The system utilizes a cloud architecture that allows for remote management of device configurations, automated data processing, and integration of internal and external data sources (Hutley et al., 2022).CVSG is new technology developed by Xylem Inc., and is being used at CW3E's Santa Ana River site below Prado Dam (SAP)."),
+                       h4(em("Level (Stage):")),
+                       p("Stage is measured by CW3E using Solinst leveloggers and barologgers. Leveloggers measure absolute pressure (water pressure + atmospheric pressure). Barologgers record atmospheric pressure. The most accurate method of obtaining changes in water level is to compensate for atmospheric pressure fluctuations using a Barologger 5, avoiding time lag in the compensation. The Barologger 5 is set above high water level in one location on site."),
                        h4(em("Precipitation:")),
-                       p("Precipitation is measured using rain gauges."),
+                       p("CW3E’s surface meteorological stations measure precipitation, among other variables. Data is collected every two minutes."),
                        br(),
                        h3("References:"),
                        p(a("https://www.usgs.gov/special-topics/water-science-school/science/how-streamflow-measured")),
-                       p(a("https://www.solinst.com/products/dataloggers-and-telemetry/3001-levelogger-series/levelogger/datasheet/barometric-compensation.php"))
+                       p(a("https://www.usgs.gov/special-topics/water-science-school/science/streamflow-and-water-cycle")),
+                       p(a("https://cw3e.ucsd.edu/cw3e-surface-meteorology-observations/")),
+                       p(a("https://www.solinst.com/products/dataloggers-and-telemetry/3001-levelogger-series/levelogger/datasheet/barometric-compensation.php")),
+                       p("Hutley, N. R., Beecroft, R., Wagenaar, D., Soutar, J., Edwards, B., Deering, N., Grinham, A., and Albert, S.: Adaptively monitoring streamflow using a stereo computer vision system, EGUsphere [preprint],",a("https://doi.org/10.5194/egusphere-2022-735"),", 2022.")
               )),
   
   imageOutput(outputId = "logo.png")
@@ -222,44 +211,43 @@ ui <- fluidPage(
 server <- function(input,output,session){
   
   #hydrograph--------------------------------------------------------------------------------------------------------------------  
-  #for manual streamflow data, plotting just CLD_M works fine but when I am trying to use it in a variable like z
-  #it does not work
   manual <- reactive({paste0(input$select_station,"_M")})
-  #y <- reactive({input$select_station})
+  y <- reactive({input$select_station})
   #manual <- paste(deparse(substitute(input$select_station)),"_M")
-
+  
   output$graph <- renderPlotly({
     
-    filteredData <- subset(date, date >= input$date_range[1] & date <= input$date_range[2])
-
+    filteredData <- subset(merged, date >= input$date_range[1] & date <= input$date_range[2])
+    
     plot_ly() %>%
       
       #add points for manual streamflow data
-      add_markers(
+      add_markers(data=filteredData,
         x=~date,
-        y=~manual,
+        y=~get(manual()),
         type="scatter",
         marker = list
-        (color ="darkgreen"),name="Manual Streamflow",inherit=TRUE) %>%
+        (color ="darkgreen"),name="Manual Streamflow") %>%
       
       #adding lines for streamflow data
-      add_trace(filteredData,
+      add_trace(data=filteredData,
                 x=~date,
-                y=~get(input$select_station),                  
+                y=~get(y()),                  
                 type="scatter", mode="lines", line = list               
                 (color='#2fa819',width=1,dash='solid'),name="Streamflow") %>%      
-
+      
       #add bars for precipitation
-      add_trace(filteredData,
+      add_trace(data=filteredData,
                 x=~date,
                 y=~rain,
                 type="bar", yaxis="y2", marker = list
                 (color="blue",width=1),name='Precipitation') %>%
       
       layout(
-        xaxis =list
-        (title = "Time (daily)"), yaxis=list
-        (title="Q (ft³/s)"),yaxis2=rainAx) 
+        xaxis = list (title = "Time (daily)"), 
+        yaxis = if(input$var == "Discharge"){dischargeAx} else{levelAx},
+        yaxis2 = rainAx) 
+    
   })
   
   #map of stations-------------------------------------------------------------------------------------------------------------
@@ -290,20 +278,11 @@ server <- function(input,output,session){
                                                                        "Longitude","Elevation(m)","Site Type"),
                                                           list(lengthMenu = c(5,10,20,45), pageLength = 8))})
   
-  #download data------------------------------------------------------------------------------------------------------------------
+  #data table under hydrograph tab-----------------------------------------------------------------------------------------------------
   
-  data <- reactive({get(input$dataset)})
-  
-  output$download_data <- downloadHandler(
-    filename = function(){paste("GitHub/R-shiny/Data/Stream/",input$dataset,"_LogLog_Q_GM.csv")},
-    content=function(file){write.csv(data(),file)}
-  )
-  
-  #image for selected station----------------------------------------------------------------------------------------------------------------
-  
-  #output$recent_image <- renderImage({
-  #req(input$select_station)
-  #})
+  output$data_table2 <- DT::renderDataTable({DT::datatable(stat_location2, rownames=FALSE,
+                                                          colnames = c("Site Name","Watershed","CW3E Code"),
+                                                          list(lengthMenu = c(5,10,20,45), pageLength = 5))})
   
 }
 
