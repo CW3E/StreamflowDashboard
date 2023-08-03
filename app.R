@@ -10,18 +10,25 @@ library(leaflet)
 library(DT)
 library(tidyverse)
 library(anytime)
+library(config)
 
 #data loading and formatting--------------------------------------------------------------------------------------------------------------
 
-setwd("C:/Users/anahi/OneDrive/Documents")
+config <- config::get("production")
+
+#setwd("C:/Users/anahi/OneDrive/Documents")
+setwd(config$current_working_dir)
 
 #station location data from github
-stat_location <- read.csv("GitHub/R-shiny/Data/Stream/CW3E_Stations_all.csv")
+#stat_location <- read.csv("GitHub/R-shiny/Data/Stream/CW3E_Stations_all.csv")
+stat_location <- read.csv(config$stat_location)
 stat_location$Site.Type <- gsub("SMOIL", "Smoil", stat_location$Site.Type)
-stat_location2 <- read.csv("/Users/anahi/OneDrive/Documents/GitHub/CW3E.StreamflowDashBoard/station_location2.csv")
+#stat_location2 <- read.csv("/Users/anahi/OneDrive/Documents/GitHub/CW3E.StreamflowDashBoard/station_location2.csv")
+stat_location2 <- read.csv(config$stat_location2)
 
 #precipitation data from github
-precip <- read_excel("GitHub/R-shiny/Data/Stream/BCC_all_precip.xlsx")
+#precip <- read_excel("GitHub/R-shiny/Data/Stream/BCC_all_precip.xlsx")
+precip <- read_excel(config$precip)
 #Aggregate the data to 15-minute intervals
 precip15 <- precip %>%group_by(TIMESTAMP=cut(TIMESTAMP,"15 mins"))%>%summarise(Rain_mm_Tot=sum(Rain_mm_Tot))
 
@@ -32,15 +39,15 @@ precip15 <- precip %>%group_by(TIMESTAMP=cut(TIMESTAMP,"15 mins"))%>%summarise(R
 #WDG <- read.table("//Skyriver/CW3E_data/CW3E_SurfaceMet_Archive/WDG/WindyGap_TwoMinWS.dat",fill=TRUE)
 
 #set wd to //Skyriver/CW3E_data/
-setwd("Z:/")
+#setwd("Z:/")
 
 #streamflow data
-BYS_Q <- read.csv("/CW3E_Streamflow_Archive/BYS/Processed/BYS_LogLog_Q.csv")
-CLD_Q <- read.csv("/CW3E_Streamflow_Archive/CLD/Processed/CLD_LogLog_Q.csv")
-MEW_Q <- read.csv("/CW3E_Streamflow_Archive/MEW/Processed/MEW_LogLog_Q.csv")
-MLL_Q <- read.csv("/CW3E_Streamflow_Archive/MLL/Processed/MLL_LogLog_Q.csv")
-PRY_Q <- read.csv("/CW3E_Streamflow_Archive/PRY/Processed/PRY_LogLog_Q.csv")
-WHT_Q <- read.csv("/CW3E_Streamflow_Archive/WHT/Processed/WHT_LogLog_Q.csv")
+BYS_Q <- read.csv(paste(config$processed_csv_path,"BYS_LogLog_Q.csv"))
+CLD_Q <- read.csv(paste(config$processed_csv_path,"CLD_LogLog_Q.csv"))
+MEW_Q <- read.csv(paste(config$processed_csv_path,"MEW_LogLog_Q.csv"))
+MLL_Q <- read.csv(paste(config$processed_csv_path,"MLL_LogLog_Q.csv"))
+PRY_Q <- read.csv(paste(config$processed_csv_path,"PRY_LogLog_Q.csv"))
+WHT_Q <- read.csv(paste(config$processed_csv_path,"WHT_LogLog_Q.csv"))
 
 #format streamflow data timestamps
 BYS_Q$bys.dt2= as.POSIXct(BYS_Q$bys.dt2, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
@@ -51,12 +58,12 @@ PRY_Q$pry.dt2= as.POSIXct(PRY_Q$pry.dt2, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 WHT_Q$wht.dt2= as.POSIXct(WHT_Q$wht.dt2, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 
 #manual streamflow data
-#BYS_QM <- read_xlsx("Z:/CW3E_Streamflow_Archive/Data/BYS_Manual_Q_R.xlsx")      #for bys, need to edit excel sheet first 
-CLD_QM <- read_xlsx("Z:/CW3E_Streamflow_Archive/Data/CLD_Manual_Q_R.xlsx")
-MEW_QM <- read_xlsx("Z:/CW3E_Streamflow_Archive/Data/MEW_Manual_Q_R.xlsx")
-MLL_QM <- read_xlsx("Z:/CW3E_Streamflow_Archive/Data/MLL_Manual_Q_R.xlsx")
-PRY_QM <- read_xlsx("Z:/CW3E_Streamflow_Archive/Data/PRY_Manual_Q_R.xlsx")
-WHT_QM <- read_xlsx("Z:/CW3E_Streamflow_Archive/Data/WHT_Manual_Q_R.xlsx")
+#BYS_QM <- read_xlsx(paste(config$streamflow_data_path,"BYS_Manual_Q_R.xlsx"))      #for bys, need to edit excel sheet first 
+CLD_QM <- read_xlsx(paste(config$streamflow_data_path,"CLD_Manual_Q_R.xlsx"))
+MEW_QM <- read_xlsx(paste(config$streamflow_data_path,"MEW_Manual_Q_R.xlsx"))
+MLL_QM <- read_xlsx(paste(config$streamflow_data_path,"MLL_Manual_Q_R.xlsx"))
+PRY_QM <- read_xlsx(paste(config$streamflow_data_path,"PRY_Manual_Q_R.xlsx"))
+WHT_QM <- read_xlsx(paste(config$streamflow_data_path,"WHT_Manual_Q_R.xlsx"))
 
 #editing date format manual streamflow data
 CLD_QM$Date.Time = as.POSIXct(CLD_QM$Date.Time, tz="UTC",format= "%m/%d/%y %H:%M:%S")
@@ -76,7 +83,8 @@ WHT_QM <- select(WHT_QM,c("Date.Time","Q.cfs"))
 WHT_QM <- rename(WHT_QM, Q.cfs.WHT = Q.cfs)
 
 #stage data
-stage_data = list.files(path = "/Users/anahi/OneDrive/Documents/GitHub/CW3E.StreamflowDashBoard/",pattern="*level.csv",full.names=TRUE)
+#stage_data = list.files(path = "/Users/anahi/OneDrive/Documents/GitHub/CW3E.StreamflowDashBoard/",pattern="*level.csv",full.names=TRUE)
+stage_data = list.files(path = config$stage_data_path,pattern="*level.csv",full.names=TRUE)
 stage = lapply(stage_data,read.csv)
 
 #merge precipitation with streamflow (using CLD_QM as test for manual data)
