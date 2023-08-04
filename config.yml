@@ -1,4 +1,4 @@
-production:
+default:
   current_working_dir: "/app_data"
   stat_location: "/app_data/Data/Stream/CW3E_Stations_all.csv"
   stat_location2: "/app_data/station_location2.csv"
