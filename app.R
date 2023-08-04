@@ -10,37 +10,47 @@ library(leaflet)
 library(DT)
 library(tidyverse)
 library(anytime)
+library(config)
 
 #data loading and formatting--------------------------------------------------------------------------------------------------------------
 
-setwd("C:/Users/anahi/OneDrive/Documents")
+config <- config::get("anahita")
 
-#station location data from github
-stat_location <- read.csv("GitHub/R-shiny/Data/Stream/CW3E_Stations_all.csv")
+setwd(config$current_working_dir)
+
+#station location data
+stat_location <- read.csv(config$stat_location)
 stat_location$Site.Type <- gsub("SMOIL", "Smoil", stat_location$Site.Type)
-stat_location2 <- read.csv("/Users/anahi/OneDrive/Documents/GitHub/CW3E.StreamflowDashBoard/station_location2.csv")
+stat_location2 <- read.csv(config$stat_location2)
 
-#precipitation data from github
-precip <- read_excel("GitHub/R-shiny/Data/Stream/BCC_all_precip.xlsx")
+#precipitation data
+precip <- read_excel(config$precip)
 #Aggregate the data to 15-minute intervals
 precip15 <- precip %>%group_by(TIMESTAMP=cut(TIMESTAMP,"15 mins"))%>%summarise(Rain_mm_Tot=sum(Rain_mm_Tot))
 
-#precipitation data from skyriver
-#BCC <- read.csv("//Skyriver/CW3E_data/CW3E_SurfaceMet_Archive/BCC/BoyesCreekCanyon_TwoMinWS.dat")
-#BVS <- read.csv("//Skyriver/CW3E_data/CW3E_SurfaceMet_Archive/BVS/BrownsValleySchool_TwoMin.dat")
-#DRW <- read.table("//Skyriver/CW3E_data/CW3E_SurfaceMet_Archive/DRW/Deerwood_TwoMinWS.dat")
-#WDG <- read.table("//Skyriver/CW3E_data/CW3E_SurfaceMet_Archive/WDG/WindyGap_TwoMinWS.dat",fill=TRUE)
+#stage data
+BYS_Le <- read.csv(paste(config$stage_data_path,"BYS_barocorrected_level.csv"))
+CLD_Le <- read.csv(paste(config$stage_data_path,"CLD_barocorrected_level.csv"))
+MEW_Le <- read.csv(paste(config$stage_data_path,"MEW_barocorrected_level.csv"))
+MLL_Le <- read.csv(paste(config$stage_data_path,"MLL_barocorrected_level.csv"))
+PRY_Le <- read.csv(paste(config$stage_data_path,"PRY_barocorrected_level.csv"))
+WHT_Le <- read.csv(paste(config$stage_data_path,"WHT_barocorrected_level.csv"))
 
-#set wd to //Skyriver/CW3E_data/
-setwd("Z:/")
+#format stage data timestamps
+BYS_Le$Date.Time = as.POSIXct(BYS_Le$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
+CLD_Le$Date.Time = as.POSIXct(CLD_Le$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
+MEW_Le$Date.Time = as.POSIXct(MEW_Le$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
+MLL_Le$Date.Time = as.POSIXct(MLL_Le$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
+PRY_Le$Date.Time = as.POSIXct(PRY_Le$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
+WHT_Le$Date.Time = as.POSIXct(WHT_Le$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 
 #streamflow data
-BYS_Q <- read.csv("/CW3E_Streamflow_Archive/BYS/Processed/BYS_LogLog_Q.csv")
-CLD_Q <- read.csv("/CW3E_Streamflow_Archive/CLD/Processed/CLD_LogLog_Q.csv")
-MEW_Q <- read.csv("/CW3E_Streamflow_Archive/MEW/Processed/MEW_LogLog_Q.csv")
-MLL_Q <- read.csv("/CW3E_Streamflow_Archive/MLL/Processed/MLL_LogLog_Q.csv")
-PRY_Q <- read.csv("/CW3E_Streamflow_Archive/PRY/Processed/PRY_LogLog_Q.csv")
-WHT_Q <- read.csv("/CW3E_Streamflow_Archive/WHT/Processed/WHT_LogLog_Q.csv")
+BYS_Q <- read.csv(paste(config$processed_csv_path,"BYS_LogLog_Q.csv"))
+CLD_Q <- read.csv(paste(config$processed_csv_path,"CLD_LogLog_Q.csv"))
+MEW_Q <- read.csv(paste(config$processed_csv_path,"MEW_LogLog_Q.csv"))
+MLL_Q <- read.csv(paste(config$processed_csv_path,"MLL_LogLog_Q.csv"))
+PRY_Q <- read.csv(paste(config$processed_csv_path,"PRY_LogLog_Q.csv"))
+WHT_Q <- read.csv(paste(config$processed_csv_path,"WHT_LogLog_Q.csv"))
 
 #format streamflow data timestamps
 BYS_Q$bys.dt2= as.POSIXct(BYS_Q$bys.dt2, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
@@ -51,12 +61,12 @@ PRY_Q$pry.dt2= as.POSIXct(PRY_Q$pry.dt2, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 WHT_Q$wht.dt2= as.POSIXct(WHT_Q$wht.dt2, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 
 #manual streamflow data
-#BYS_QM <- read_xlsx("Z:/CW3E_Streamflow_Archive/Data/BYS_Manual_Q_R.xlsx")      #for bys, need to edit excel sheet first 
-CLD_QM <- read_xlsx("Z:/CW3E_Streamflow_Archive/Data/CLD_Manual_Q_R.xlsx")
-MEW_QM <- read_xlsx("Z:/CW3E_Streamflow_Archive/Data/MEW_Manual_Q_R.xlsx")
-MLL_QM <- read_xlsx("Z:/CW3E_Streamflow_Archive/Data/MLL_Manual_Q_R.xlsx")
-PRY_QM <- read_xlsx("Z:/CW3E_Streamflow_Archive/Data/PRY_Manual_Q_R.xlsx")
-WHT_QM <- read_xlsx("Z:/CW3E_Streamflow_Archive/Data/WHT_Manual_Q_R.xlsx")
+#BYS_QM <- read_xlsx(paste(config$streamflow_data_path,"BYS_Manual_Q_R.xlsx"))      #for bys, need to edit excel sheet first 
+CLD_QM <- read_xlsx(paste(config$streamflow_data_path,"CLD_Manual_Q_R.xlsx"))
+MEW_QM <- read_xlsx(paste(config$streamflow_data_path,"MEW_Manual_Q_R.xlsx"))
+MLL_QM <- read_xlsx(paste(config$streamflow_data_path,"MLL_Manual_Q_R.xlsx"))
+PRY_QM <- read_xlsx(paste(config$streamflow_data_path,"PRY_Manual_Q_R.xlsx"))
+WHT_QM <- read_xlsx(paste(config$streamflow_data_path,"WHT_Manual_Q_R.xlsx"))
 
 #editing date format manual streamflow data
 CLD_QM$Date.Time = as.POSIXct(CLD_QM$Date.Time, tz="UTC",format= "%m/%d/%y %H:%M:%S")
@@ -75,28 +85,36 @@ WHT_QM$Date.Time = as.POSIXct(WHT_QM$Date.Time, tz="UTC",format= "%m/%d/%y %H:%M
 WHT_QM <- select(WHT_QM,c("Date.Time","Q.cfs"))
 WHT_QM <- rename(WHT_QM, Q.cfs.WHT = Q.cfs)
 
-#stage data
-stage_data = list.files(path = "/Users/anahi/OneDrive/Documents/GitHub/CW3E.StreamflowDashBoard/",pattern="*level.csv",full.names=TRUE)
-stage = lapply(stage_data,read.csv)
-
 #merge precipitation with streamflow (using CLD_QM as test for manual data)
 merged <- merge(BYS_Q,precip15,by.x ="bys.dt2", by.y = "TIMESTAMP",all = TRUE)
-merged <- merge(CLD_Q,merged, by.x = "cld.dt2", by.y = "bys.dt2", all = TRUE)
-merged <- merge(MEW_Q,merged, by.x = "mew.dt2", by.y = "cld.dt2", all = TRUE)
-merged <- merge(MLL_Q,merged, by.x = "mill.dt2",by.y = "mew.dt2", all = TRUE)
-merged <- merge(PRY_Q,merged, by.x = "pry.dt2", by.y = "mill.dt2",all = TRUE)
-merged <- merge(WHT_Q,merged, by.x = "wht.dt2", by.y = "pry.dt2", all = TRUE)
+merged <- merge(CLD_Q, merged, by.x = "cld.dt2", by.y = "bys.dt2", all = TRUE)
+merged <- merge(MEW_Q, merged, by.x = "mew.dt2", by.y = "cld.dt2", all = TRUE)
+merged <- merge(MLL_Q, merged, by.x = "mill.dt2",by.y = "mew.dt2", all = TRUE)
+merged <- merge(PRY_Q, merged, by.x = "pry.dt2", by.y = "mill.dt2",all = TRUE)
+merged <- merge(WHT_Q, merged, by.x = "wht.dt2", by.y = "pry.dt2", all = TRUE)
 merged <- merge(CLD_QM,merged, by.x = "Date.Time", by.y = "wht.dt2", all=TRUE)
 merged <- merge(MEW_QM,merged, by = "Date.Time", all=TRUE)
 merged <- merge(MLL_QM,merged, by = "Date.Time", all=TRUE)
 merged <- merge(PRY_QM,merged, by = "Date.Time", all=TRUE)
 merged <- merge(WHT_QM,merged, by = "Date.Time", all=TRUE)
+merged <- merge(BYS_Le, merged, by = "Date.Time", all=TRUE)
+merged <- merge(CLD_Le, merged, by = "Date.Time", all=TRUE)
+merged <- merge(MEW_Le, merged, by = "Date.Time", all=TRUE)
+merged <- merge(MLL_Le, merged, by = "Date.Time", all=TRUE)
+merged <- merge(PRY_Le, merged, by = "Date.Time", all=TRUE)
+merged <- merge(WHT_Le, merged, by = "Date.Time", all=TRUE)
 
 CLD_M = merged$Q.cfs.CLD
 MEW_M = merged$Q.cfs.MEW
 MLL_M = merged$Q.cfs.MLL
 PRY_M = merged$Q.cfs.PRY
 WHT_M = merged$Q.cfs.WHT
+BYS_L = merged$level.in.BYS
+CLD_L = merged$level.in.CLD
+MEW_L = merged$level.in.MEW
+MLL_L = merged$level.in.MLL
+PRY_L = merged$level.in.PRY
+WHT_L = merged$level.in.WHT
 BYS = merged$bys.q4 
 CLD = merged$cld.q3 
 MEW = merged$mew.q3
@@ -110,7 +128,7 @@ rain = merged$Rain_mm_Tot
 rainAx = list(overlaying="y",side="right",title="Precipitation (mm)",range=c(300,0),showgrid=FALSE)
 
 #set left y axis for level
-levelAx = list(side="left",title="Level (inches)",range=c(0,50),showgrid=FALSE)
+levelAx = list(side="left",title="Level (inches)",showgrid=FALSE)
 
 #set left y axis for discharge
 dischargeAx = list(side="left",title="Discharge (ft³/s)",showgrid=FALSE)
@@ -138,14 +156,18 @@ ui <- fluidPage(
                                       selectizeInput(
                                         inputId = "select_station",
                                         label = "Select Station:",
-                                        choices = stat_location$CW3E.Code,
+                                        choices = c("BYS","CLD","MEW","MLL","PRY","WHT","UDC","LDM","SYR","SAP"),
                                         selected = "CLD"), 
                                       
                                       selectizeInput(
                                         inputId = "var",
                                         label = "Select Variable:",
-                                        choices = list("Discharge", "Level"), 
+                                        choices = list("Discharge","Level"), 
                                         selected="Discharge"), 
+                                      
+                                      p(strong("Notes on Manual Discharge:")),
+                                      p("To add or remove manual discharge points from the hydrograph, click on 
+                                        'Manual Discharge' in the legend located in the top right corner of the hydrograph."),
                                       
                                       p(strong("Notes on Precipitation:")),
                                       p("To add or remove precipitation from the hydrograph, click on 'Precipitation' in
@@ -157,10 +179,10 @@ ui <- fluidPage(
                                       sliderInput(
                                         inputId = "date_range",
                                         label = "Select Date Range:",
-                                        min = as.POSIXct("2015-09-09 12:30:00"),
-                                        max = as.POSIXct("2023-10-25 07:00:00"),
-                                        value=c(as.POSIXct("2015-09-09 12:30:00"),
-                                                as.POSIXct("2023-10-25 07:00:00")),
+                                        min = as.POSIXct("2016-09-09 00:00:00"),
+                                        max = as.POSIXct("2022-10-25 12:30:00"),
+                                        value=c(as.POSIXct("2015-09-09 00:00:00"),
+                                                as.POSIXct("2022-10-25 12:30:00")),
                                         timeFormat="%Y-%m-%d %H:%M:%S")),
 
                          mainPanel(position = "right",
@@ -213,42 +235,66 @@ server <- function(input,output,session){
   #hydrograph--------------------------------------------------------------------------------------------------------------------  
   manual <- reactive({paste0(input$select_station,"_M")})
   y <- reactive({input$select_station})
-  #manual <- paste(deparse(substitute(input$select_station)),"_M")
+  level <- reactive({paste0(input$select_station,"_L")})
   
   output$graph <- renderPlotly({
     
+    req(input$var)
+
     filteredData <- subset(merged, date >= input$date_range[1] & date <= input$date_range[2])
     
-    plot_ly() %>%
-      
-      #add points for manual streamflow data
-      add_markers(data=filteredData,
-        x=~date,
-        y=~get(manual()),
-        type="scatter",
-        marker = list
-        (color ="darkgreen"),name="Manual Streamflow") %>%
-      
-      #adding lines for streamflow data
-      add_trace(data=filteredData,
-                x=~date,
-                y=~get(y()),                  
-                type="scatter", mode="lines", line = list               
-                (color='#2fa819',width=1,dash='solid'),name="Streamflow") %>%      
-      
-      #add bars for precipitation
-      add_trace(data=filteredData,
-                x=~date,
-                y=~rain,
-                type="bar", yaxis="y2", marker = list
-                (color="blue",width=1),name='Precipitation') %>%
-      
-      layout(
-        xaxis = list (title = "Time (daily)"), 
-        yaxis = if(input$var == "Discharge"){dischargeAx} else{levelAx},
-        yaxis2 = rainAx) 
+    p <- plot_ly()
+    
+    if (input$var == "Discharge") {
+      # Add points for manual discharge data
+      p <- add_trace(p,
+                     data = filteredData,
+                     x = ~date,
+                     y = ~get(manual()),
+                     type = "scatter",
+                     mode = "markers",
+                     marker = list(color = "darkgreen"),
+                     name = "Manual Discharge")
+    ;
+      # Adding lines for discharge data
+      p <- add_trace(p,
+                     data = filteredData,
+                     x = ~date,
+                     y = ~get(y()),
+                     type = "scatter",
+                     mode = "lines",
+                     line = list(color = '#2fa819', width = 1, dash = 'solid'),
+                     name = "Discharge")
+    } else {
+      # Adding lines for level data
+      p <- add_trace(p,
+                     data = filteredData,
+                     x = ~date,
+                     y = ~get(level()),
+                     type = "scatter",
+                     mode = "lines",
+                     line = list(color = 'red', width = 1, dash = 'solid'),
+                     name = "Level")
+    }
+    
+    p <- add_trace(p,
+                   data = filteredData,
+                   x = ~date,
+                   y = ~rain,
+                   type = "bar",
+                   yaxis = "y2",
+                   marker = list(color = "blue", width = 1),
+                   name = 'Precipitation')
+    
+    p <- layout(p,
+                xaxis = list(title = "Time (daily)"), 
+                yaxis = if (input$var == "Discharge" | input$var == "Manual Discharge") {dischargeAx} else {levelAx},
+                yaxis2 = rainAx)
+    
+    return(p)
     
   })
+
   
   #map of stations-------------------------------------------------------------------------------------------------------------
   
@@ -282,7 +328,7 @@ server <- function(input,output,session){
   
   output$data_table2 <- DT::renderDataTable({DT::datatable(stat_location2, rownames=FALSE,
                                                           colnames = c("Site Name","Watershed","CW3E Code"),
-                                                          list(lengthMenu = c(5,10,20,45), pageLength = 5))})
+                                                          list(lengthMenu = c(5,10,14), pageLength = 5))})
   
 }
 
