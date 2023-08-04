@@ -1,0 +1,44 @@
+Name,Watershed,CW3E Code,CDEC code,CNRFC code,Latitude,Longitude,Elevation (Approx. m),Site Type
+Skyline Harvest,Yuba,SKY,SKY,XSHC1,39.470969,-121.091673,836,SMOIL
+Northstar Meadow (sierra pacific),Yuba,NSM,,,39.605249,-121.071594,1235,SMOIL
+Lower Bathhouse (SFSU),Yuba,LBH,LBH,LBHC1,39.624073,-120.577654,1685,DisdroMet
+"Downieville, Lee Adams",Yuba,DLA,DLA,DWVC1,39.5634,-120.8242,906,Rad Met
+New Bullards Bar Dam,Yuba,NBB,BDB,XBWC1,39.396359,-121.1437698,632,Rad Met
+Feather River College ,Feather,FRC,FCL,FCLC1,39.945873,-120.969701,1047,SMOIL
+"Marysville, Kibbe Road",Yuba,YUB,,,39.220808,-121.482356,30,Launch
+Truckee radar ,Martis Cr.,TRK,,,39.328435,-120.122274,1789,MRR
+Browns Valley School,Yuba,BVS,BVS,BVSC1,39.23586,-121.40621,71,SMOIL
+Portola,Feather,POR,POR,XPTC1,39.8175,-120.4969,1509,SMOIL
+Dry Creek @ Sycamore Ranch,Yuba,SYR,,,39.22389,-121.407016,46,Stream
+Little Dry Creek @ Marysville,Yuba,LDM,,,39.256644,-121.39706,65,Stream
+Upper Dry Creek @ Peoria Road,Yuba,UDC,,,39.251277,-121.350107,72,Stream
+Bodega Bay,Russian,BBY,--,,38.3191,-123.0728,15,Launch
+Ukiah,Russian,UKI,--,,39.16002,-123.1935,183,Launch
+Yellowjacket Ridge,Russian,YJR,--,,39.3315,-123.18402,706,Precip Met
+Antler Point,Russian,ATP,--,,39.33895,-123.1697,405,Precip Met
+Frost Pauli,Russian,FRS,--,,39.3048,-123.082,310,Precip Met
+North Cow Hillside,Russian,NCH,--,,39.1786,-123.0781,1055,Precip Met
+Delbar Green Pond,Russian,GPN,--,,39.24075,-123.00985,694,Precip Met
+Delbar Pasture Ridge,Russian,DPR,--,,39.24477,-123.02201,521,Precip Met
+Magruder Upper Pond,Russian,UPP,--,,39.27824,-123.14313,530,Precip Met
+Cow Pie Pasture,Russian,CPP,--,,39.27945,-123.10988,317,Precip Met
+Magruder Solar Panel,Russian,SLR,--,,39.28142,-123.12408,402,Precip Met
+Redwood Valley Pineview,Russian,RVP,--,,39.28499,-123.30487,379,Precip Met
+Potter Valley Central,Russian,PVC,--,,39.32094,-123.10275,289,Rad Met
+Deerwood,Russian,DRW,DWDC1,,39.19772,-123.15992,280,Smoil
+Potter Valley North,Russian,PVN,NPVC1,,39.36126,-123.11321,404,Smoil
+Boyes Creek Canyon,Russian,BCC,BOYC1,,39.34053,-123.16349,317,Smoil
+North Cow Mountain,Russian,NCM,NCWC1,,39.1796,-123.08,1041,Smoil
+Windy Gap,Russian,WDG,WDGC1,,39.23437,-123.00495,834,Smoil
+Hells Delight Canyon,Russian,HDC,XHDC1,,39.267714,-123.147305,620,Smoil
+Perry Creek,Russian,PRY,--,,39.20229,-123.15536,237,Stream
+Cold Creek,Russian,CLD,--,,39.2438,-123.1215,262,Stream
+Boyes Creek,Russian,BYS,--,,39.34061,-123.1585,347,Stream
+Mewhinney Creek,Russian,MEW,--,,39.2497,-123.02714,434,Stream
+White Creek,Russian,WHT,--,,39.27809,-123.11088,275,Stream
+Mill Creek,Russian,MLL,--,,39.282206,-123.300137,305,Stream
+East Fork Russian,Russian,EFR,--,,39.280084,-123.102095,271,Stream
+Catalina Island,Santa Ana (Offshore Site),CAT,CAT,WGLC1,33.446162,-118.482738,40,Rad Met
+Seven Oaks Dam,Santa Ana,SOD,SEV,N/A,34.115663,-117.093692,787,Rad Met
+Santa Ana River below Prado Dam,Santa Ana,SAP,,N/A,33.883617,-117.644917,143,Stream
+Yucaipa Valley,Santa Ana,YVW,YVW,N/A,34.0074,-117.0916,641,SMOIL
