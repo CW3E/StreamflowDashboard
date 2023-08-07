@@ -2,7 +2,6 @@ default:
   root_dir: "/app_data"
   stat_location: "/Data/Stream/CW3E_Stations_all.csv"
   stat_location2: "/station_location2.csv"
-  precip: "/Data/Stream/BCC_all_precip.xlsx"
   processed_csv_path: "/Data/CLD/Processed/"
   streamflow_data_path: "/Data/CW3E_Streamflow_Archive/Data/"
   stage_data_path: ""
@@ -10,11 +9,10 @@ default:
 
 
 anahita:
-  root_dir: "C:/Users/anahi/OneDrive/Documents"
+  root_dir: "C:/Users/anahi/OneDrive/Documents/"
   stat_location: "GitHub/R-shiny/Data/Stream/CW3E_Stations_all.csv"
-  stat_location2: "/Users/anahi/OneDrive/Documents/GitHub/CW3E.StreamflowDashBoard/station_location2.csv"
-  precip: "GitHub/R-shiny/Data/Stream/BCC_all_precip.xlsx"
-  processed_csv_path: "Z:/CW3E_Streamflow_Archive/CLD/Processed/"
-  streamflow_data_path: "Z:/CW3E_Streamflow_Archive/Data/"
-  stage_data_path: "/Users/anahi/OneDrive/Documents/GitHub/CW3E.StreamflowDashBoard/" 
+  stat_location2: "GitHub/CW3E.StreamflowDashBoard/station_location2.csv"
+  processed_csv_path: "GitHub/CW3E.StreamflowDashBoard/data/CW3E_Streamflow_Archive/"
+  streamflow_data_path: "GitHub/CW3E.StreamflowDashBoard/data/CW3E_Streamflow_Archive/Data/"
+  stage_data_path: "GitHub/CW3E.StreamflowDashBoard/"
   precip_data_path: "GitHub/CW3E.StreamflowDashBoard/"
