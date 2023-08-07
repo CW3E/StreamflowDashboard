@@ -17,4 +17,4 @@ anahita:
   processed_csv_path: "Z:/CW3E_Streamflow_Archive/CLD/Processed/"
   streamflow_data_path: "Z:/CW3E_Streamflow_Archive/Data/"
   stage_data_path: "/Users/anahi/OneDrive/Documents/GitHub/CW3E.StreamflowDashBoard/" 
-  precip_data_path: "GitHub/CW3E.StreamflowDashBoard/data/"
+  precip_data_path: "GitHub/CW3E.StreamflowDashBoard/"
