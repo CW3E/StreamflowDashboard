@@ -1,11 +1,11 @@
 default:
-  root_dir: "/app_data"
-  stat_location: "/Data/Stream/CW3E_Stations_all.csv"
-  stat_location2: "/station_location2.csv"
+  root_dir: "/data/CW3E_Streamflow_Archive/"
+  stat_location: "/Data/a7jensen/CW3E_Stations_all.csv"
+  stat_location2: "/Data/a7jensen/station_location2.csv"
   processed_csv_path: "/Data/CLD/Processed/"
-  streamflow_data_path: "/Data/CW3E_Streamflow_Archive/Data/"
-  stage_data_path: ""
-  precip_data_path: ""
+  streamflow_data_path: "/Data/"
+  stage_data_path: "/Data/a7jensen/"
+  precip_data_path: "/Data/a7jensen/"
 
 
 anahita:
