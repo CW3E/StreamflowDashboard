@@ -16,7 +16,7 @@ library(config)
 
 config <- config::get("anahita:")
 
-setwd(config$current_working_dir)
+setwd(paste("config$current_working_dir"))
 
 #station location data
 stat_location <- read.csv(config$stat_location)
@@ -30,10 +30,10 @@ DRW_P <- read_excel(config$precip_data_path,"DRW_precip.xlsx")
 WDG_P <- read_excel(config$precip_data_path,"WDG_precip.xlsx")
 
 #aggregate precipitation data to 15 minutes intervals
-BCC_P15 <- BCC_P %>%group_by(Date.Time=cut(Date.Time,"15 mins"))%>%summarise(rain_in=sum(rain_in))
-BVS_P15 <- BVS_P %>%group_by(Date.Time=cut(Date.Time,"15 mins"))%>%summarise(rain_in=sum(rain_in))
-DRW_P15 <- DRW_P %>%group_by(Date.Time=cut(Date.Time,"15 mins"))%>%summarise(rain_in=sum(rain_in))
-WDG_P15 <- WDG_P %>%group_by(Date.Time=cut(Date.Time,"15 mins"))%>%summarise(rain_in=sum(rain_in))
+BCC_P15 <- BCC_P %>%group_by(Date.Time=cut(Date.Time,"15 mins"))%>%summarise(rain_in_BCC=sum(rain_in_BCC))
+BVS_P15 <- BVS_P %>%group_by(Date.Time=cut(Date.Time,"15 mins"))%>%summarise(rain_in_BVS=sum(rain_in_BVS))
+DRW_P15 <- DRW_P %>%group_by(Date.Time=cut(Date.Time,"15 mins"))%>%summarise(rain_in_DRW=sum(rain_in_DRW))
+WDG_P15 <- WDG_P %>%group_by(Date.Time=cut(Date.Time,"15 mins"))%>%summarise(rain_in_WDG=sum(rain_in_WDG))
 
 #stage data
 BYS_Le <- read.csv(paste(config$stage_data_path,"BYS_barocorrected_level.csv"))
@@ -136,7 +136,10 @@ MLL = merged$mill.q3
 PRY = merged$pry.q3
 WHT = merged$wht.q3
 date = merged$Date.Time
-rain = merged$Rain_mm_Tot 
+BCC = merged$rain_in_BCC
+BVS = merged$rain_in_BVS
+DRW = merged$rain_in_DRW
+WDG = merged$rain_in_WDG
 
 #set right y axis for precipitation
 rainAx = list(overlaying="y",side="right",title="Precipitation (mm)",range=c(300,0),showgrid=FALSE)
@@ -292,11 +295,14 @@ server <- function(input,output,session){
                      line = list(color = 'red', width = 1, dash = 'solid'),
                      name = "Level")
     }
-    
+    #if (input$select_station == "BYS"|input$select_station == "WHT"){rain="BCC"}
+    #if else (input$select_station == "CLD"|input$select_station == "PRY"|input$select_station == "MLL"){rain="DRW"}
+    #if else (input$select_station == "MEW"){rain="WDG"}
+    #else {rain="BCC"}
     p <- add_trace(p,
                    data = filteredData,
                    x = ~date,
-                   y = ~rain,
+                   y = ~get(rain()),
                    type = "bar",
                    yaxis = "y2",
                    marker = list(color = "blue", width = 1),
