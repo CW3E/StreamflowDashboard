@@ -16,3 +16,12 @@ anahita:
   streamflow_data_path: "/CW3E_Streamflow_Archive/Data/"
   stage_data_path: "/CW3E_Streamflow_Archive/Data/a7jensen/"
   precip_data_path: "/CW3E_Streamflow_Archive/Data/a7jensen/"
+
+anahita2:
+  root_dir: "C:/Users/anahi/OneDrive/Documents/GitHub/CW3E.StreamflowDashBoard/data/"
+  stat_location: "C:/Users/anahi/OneDrive/Documents/GitHub/CW3E.StreamflowDashBoard/data/CW3E_Streamflow_Archive/Data/a7jensen/CW3E_Stations_all.csv"
+  stat_location2: "C:/Users/anahi/OneDrive/Documents/GitHub/CW3E.StreamflowDashBoard/data/CW3E_Streamflow_Archive/Data/a7jensen/station_location2.csv"
+  processed_csv_path: "/CW3E_Streamflow_Archive/"
+  streamflow_data_path: "/CW3E_Streamflow_Archive/Data/"
+  stage_data_path: "/CW3E_Streamflow_Archive/Data/a7jensen/"
+  precip_data_path: "/CW3E_Streamflow_Archive/Data/a7jensen/"
