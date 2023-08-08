@@ -15,4 +15,4 @@ anahita:
   processed_csv_path: "CW3E_Streamflow_Archive/"
   streamflow_data_path: "CW3E_Streamflow_Archive/Data/"
   stage_data_path: "CW3E_Streamflow_Archive/Data/a7jensen/"
-  precip_data_path: "CW3E_Streamflow_Archive/Data/a7jensen/"
+  precip_data_path: "CW3E_Streamflow_Archive/Data/a7jensen"
