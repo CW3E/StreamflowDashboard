@@ -10,8 +10,8 @@ default:
 
 anahita:
   root_dir: "C:/Users/anahi/OneDrive/Documents/"
-  stat_location: "/GitHub/CW3E.StreamflowDashBoard/data/CW3E_Stations_all.csv"
-  stat_location2: "/GitHub/CW3E.StreamflowDashBoard/data/station_location2.csv"
+  stat_location: "/GitHub/CW3E.StreamflowDashBoard/data/CW3E_Streamflow_Archive/Data/CW3E_Stations_all.csv"
+  stat_location2: "/GitHub/CW3E.StreamflowDashBoard/data/CW3E_Streamflow_Archive/Data/station_location2.csv"
   processed_csv_path: "/GitHub/CW3E.StreamflowDashBoard/data/CW3E_Streamflow_Archive/"
   streamflow_data_path: "/GitHub/CW3E.StreamflowDashBoard/data/CW3E_Streamflow_Archive/Data/"
   stage_data_path: "/GitHub/CW3E.StreamflowDashBoard/data/"
