@@ -14,9 +14,9 @@ library(config)
 
 #data loading and formatting--------------------------------------------------------------------------------------------------------------
 
-config <- config::get("anahita:")
-
-setwd(paste("config$current_working_dir"))
+Sys.setenv(R_CONFIG_ACTIVE = "anahita")
+config <- config::get()                       
+setwd(config$root_dir)
 
 #station location data
 stat_location <- read.csv(config$stat_location)
@@ -24,10 +24,10 @@ stat_location$Site.Type <- gsub("SMOIL", "Smoil", stat_location$Site.Type)
 stat_location2 <- read.csv(config$stat_location2)
 
 #precipitation data
-BCC_P15 <- read.csv(config$precip_data_path,"BCC_precip15min.csv")
-BVS_P15 <- read.csv(config$precip_data_path,"BVS_precip15min.csv")
-DRW_P15 <- read.csv(config$precip_data_path,"DRW_precip15min.csv")
-WDG_P15 <- read.csv(config$precip_data_path,"WDG_precip15min.csv")
+BCC_P15 <- read.csv(paste(config$precip_data_path, "/BCC_precip15min.csv", sep = ""), header = TRUE)
+BVS_P15 <- read.csv(paste(config$precip_data_path, "/BVS_precip15min.csv", sep = ""), header = TRUE)
+DRW_P15 <- read.csv(paste(config$precip_data_path, "/DRW_precip15min.csv", sep = ""), header = TRUE)
+WDG_P15 <- read.csv(paste(config$precip_data_path, "/WDG_precip15min.csv", sep = ""), header = TRUE)
 
 #format precipitation data dates
 BCC_P15$Date.Time = as.POSIXct(BCC_P15$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
@@ -36,12 +36,12 @@ DRW_P15$Date.Time = as.POSIXct(DRW_P15$Date.Time, tz= "UTC", format= "%Y-%m-%d %
 WDG_P15$Date.Time = as.POSIXct(WDG_P15$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 
 #stage data
-BYS_Le <- read.csv(paste(config$stage_data_path,"BYS_barocorrected_level.csv"))
-CLD_Le <- read.csv(paste(config$stage_data_path,"CLD_barocorrected_level.csv"))
-MEW_Le <- read.csv(paste(config$stage_data_path,"MEW_barocorrected_level.csv"))
-MLL_Le <- read.csv(paste(config$stage_data_path,"MLL_barocorrected_level.csv"))
-PRY_Le <- read.csv(paste(config$stage_data_path,"PRY_barocorrected_level.csv"))
-WHT_Le <- read.csv(paste(config$stage_data_path,"WHT_barocorrected_level.csv"))
+BYS_Le <- read.csv(paste(config$stage_data_path,"BYS_barocorrected_level.csv", sep = ""), header = TRUE)
+CLD_Le <- read.csv(paste(config$stage_data_path,"CLD_barocorrected_level.csv", sep = ""), header = TRUE)
+MEW_Le <- read.csv(paste(config$stage_data_path,"MEW_barocorrected_level.csv", sep = ""), header = TRUE)
+MLL_Le <- read.csv(paste(config$stage_data_path,"MLL_barocorrected_level.csv", sep = ""), header = TRUE)
+PRY_Le <- read.csv(paste(config$stage_data_path,"PRY_barocorrected_level.csv", sep = ""), header = TRUE)
+WHT_Le <- read.csv(paste(config$stage_data_path,"WHT_barocorrected_level.csv", sep = ""), header = TRUE)
 
 #format stage data timestamps
 BYS_Le$Date.Time = as.POSIXct(BYS_Le$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
@@ -51,13 +51,21 @@ MLL_Le$Date.Time = as.POSIXct(MLL_Le$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:
 PRY_Le$Date.Time = as.POSIXct(PRY_Le$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 WHT_Le$Date.Time = as.POSIXct(WHT_Le$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 
+#clean up stage data
+BYS_Le <- select(BYS_Le,-"X")
+CLD_Le <- select(CLD_Le,-"X")
+MEW_Le <- select(MEW_Le,-"X")
+MLL_Le <- select(MLL_Le,-"X")
+PRY_Le <- select(PRY_Le,-"X")
+WHT_Le <- select(WHT_Le,-"X")
+
 #streamflow data
-BYS_Q <- read.csv(paste(config$processed_csv_path,"BYS_LogLog_Q.csv"))
-CLD_Q <- read.csv(paste(config$processed_csv_path,"CLD_LogLog_Q.csv"))
-MEW_Q <- read.csv(paste(config$processed_csv_path,"MEW_LogLog_Q.csv"))
-MLL_Q <- read.csv(paste(config$processed_csv_path,"MLL_LogLog_Q.csv"))
-PRY_Q <- read.csv(paste(config$processed_csv_path,"PRY_LogLog_Q.csv"))
-WHT_Q <- read.csv(paste(config$processed_csv_path,"WHT_LogLog_Q.csv"))
+BYS_Q <- read.csv(paste(config$processed_csv_path,"BYS/Processed/BYS_LogLog_Q.csv", sep = ""), header = TRUE)
+CLD_Q <- read.csv(paste(config$processed_csv_path,"CLD/Processed/CLD_LogLog_Q.csv", sep = ""), header = TRUE)
+MEW_Q <- read.csv(paste(config$processed_csv_path,"MEW/Processed/MEW_LogLog_Q.csv", sep = ""), header = TRUE)
+MLL_Q <- read.csv(paste(config$processed_csv_path,"MLL/Processed/MLL_LogLog_Q.csv", sep = ""), header = TRUE)
+PRY_Q <- read.csv(paste(config$processed_csv_path,"PRY/Processed/PRY_LogLog_Q.csv", sep = ""), header = TRUE)
+WHT_Q <- read.csv(paste(config$processed_csv_path,"WHT/Processed/WHT_LogLog_Q.csv", sep = ""), header = TRUE)
 
 #format streamflow data timestamps
 BYS_Q$bys.dt2= as.POSIXct(BYS_Q$bys.dt2, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
@@ -68,12 +76,12 @@ PRY_Q$pry.dt2= as.POSIXct(PRY_Q$pry.dt2, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 WHT_Q$wht.dt2= as.POSIXct(WHT_Q$wht.dt2, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 
 #manual streamflow data
-BYS_QM <- read_xlsx(paste(config$streamflow_data_path,"BYS_Manual_Q_R.xlsx"))     
-CLD_QM <- read_xlsx(paste(config$streamflow_data_path,"CLD_Manual_Q_R.xlsx"))
-MEW_QM <- read_xlsx(paste(config$streamflow_data_path,"MEW_Manual_Q_R.xlsx"))
-MLL_QM <- read_xlsx(paste(config$streamflow_data_path,"MLL_Manual_Q_R.xlsx"))
-PRY_QM <- read_xlsx(paste(config$streamflow_data_path,"PRY_Manual_Q_R.xlsx"))
-WHT_QM <- read_xlsx(paste(config$streamflow_data_path,"WHT_Manual_Q_R.xlsx"))
+#BYS_QM <- read_xlsx(paste(config$streamflow_data_path,"BYS_Manual_Q_R.xlsx",sep=""))     
+CLD_QM <- read_xlsx(paste(config$streamflow_data_path,"CLD_Manual_Q_R.xlsx",sep=""))
+MEW_QM <- read_xlsx(paste(config$streamflow_data_path,"MEW_Manual_Q_R.xlsx",sep=""))
+MLL_QM <- read_xlsx(paste(config$streamflow_data_path,"MLL_Manual_Q_R.xlsx",sep=""))
+PRY_QM <- read_xlsx(paste(config$streamflow_data_path,"PRY_Manual_Q_R.xlsx",sep=""))
+WHT_QM <- read_xlsx(paste(config$streamflow_data_path,"WHT_Manual_Q_R.xlsx",sep=""))
 
 #editing date format manual streamflow data
 CLD_QM$Date.Time = as.POSIXct(CLD_QM$Date.Time, tz="UTC",format= "%m/%d/%y %H:%M:%S")
@@ -138,7 +146,7 @@ DRW = merged$rain_in_DRW
 WDG = merged$rain_in_WDG
 
 #set right y axis for precipitation
-rainAx = list(overlaying="y",side="right",title="Precipitation (inches)",range=c(0.5,0),showgrid=FALSE)
+rainAx = list(overlaying="y",side="right",title="Precipitation (inches)",range=c(1,0),showgrid=FALSE)
 
 #set left y axis for level
 levelAx = list(side="left",title="Level (inches)",showgrid=FALSE)
@@ -169,7 +177,7 @@ ui <- fluidPage(
                                       selectizeInput(
                                         inputId = "select_station",
                                         label = "Select Station:",
-                                        choices = c("BYS","CLD","MEW","MLL","PRY","WHT","UDC","LDM","SYR","SAP"),
+                                        choices = c("BYS","CLD","MEW","MLL","PRY","WHT"),
                                         selected = "CLD"), 
                                       
                                       selectizeInput(
@@ -204,7 +212,6 @@ ui <- fluidPage(
                                    dataTableOutput("data_table2"),
                                    plotlyOutput("selected_var"),
                                    plotlyOutput("selected_dates")
-                                   #imageOutput("recent_image")
                          )
                        )),                         
               
@@ -249,15 +256,15 @@ server <- function(input,output,session){
   manual <- reactive({paste0(input$select_station,"_M")})
   y <- reactive({input$select_station})
   level <- reactive({paste0(input$select_station,"_L")})
-
+  
   output$graph <- renderPlotly({
-
-    req(input$var)
-
-    filteredData <- subset(merged, date >= input$date_range[1] & date <= input$date_range[2])
-
+    
+    req(input$var,input$date_range)
+    
+    filteredData <- subset(merged, Date.Time >= input$date_range[1] & Date.Time <= input$date_range[2])
+    
     p <- plot_ly()
-
+    
     if (input$var == "Discharge") {
       # Add points for manual discharge data
       p <- add_trace(p,
@@ -289,26 +296,25 @@ server <- function(input,output,session){
                      line = list(color = 'red', width = 1, dash = 'solid'),
                      name = "Level")
     }
-
+    
+    #add bars for precipitation
     p <- add_bars(p,
-                   data = filteredData,
-                   x = ~date,
-                   y = ~WDG,
-                   # y = if (input$select_station %in% c("BYS", "WHT")) "BCC" else
-                   #     if (input$select_station %in% c("CLD", "PRY", "MLL")) "DRW" else
-                   #     if (input$select_station == "MEW") "WDG",
-                   #type = "bar",
-                   yaxis = "y2",
-                   marker = list(color = "blue", width = 1),
-                   name = 'Precipitation')
-
+                  data = filteredData,
+                  x = ~date,
+                   y =  if (input$select_station %in% c("BYS", "WHT")) BCC else
+                        if (input$select_station %in% c("CLD", "PRY", "MLL")) DRW else
+                        if (input$select_station == "MEW") WDG,
+                  yaxis = "y2",
+                  marker = list(color = "blue", width = 1),
+                  name = 'Precipitation')
+    
     p <- layout(p,
                 xaxis = list(title = "Time (daily)"),
                 yaxis = if (input$var == "Discharge" | input$var == "Manual Discharge") {dischargeAx} else {levelAx},
                 yaxis2 = rainAx)
-
+    
     return(p)
-
+    
   })
   
   #map of stations-------------------------------------------------------------------------------------------------------------
