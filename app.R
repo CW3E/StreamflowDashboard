@@ -14,6 +14,7 @@ library(config)
 
 #data loading and formatting--------------------------------------------------------------------------------------------------------------
 
+#set environment and retrieve config file
 Sys.setenv(R_CONFIG_ACTIVE = "anahita")
 config <- config::get()                       
 setwd(config$root_dir)
@@ -76,7 +77,7 @@ PRY_Q$pry.dt2= as.POSIXct(PRY_Q$pry.dt2, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 WHT_Q$wht.dt2= as.POSIXct(WHT_Q$wht.dt2, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 
 #manual streamflow data
-#BYS_QM <- read_xlsx(paste(config$streamflow_data_path,"BYS_Manual_Q_R.xlsx",sep=""))     
+BYS_QM <- read_xlsx(paste(config$streamflow_data_path,"BYS_Manual_Q_R.xlsx",sep=""))     
 CLD_QM <- read_xlsx(paste(config$streamflow_data_path,"CLD_Manual_Q_R.xlsx",sep=""))
 MEW_QM <- read_xlsx(paste(config$streamflow_data_path,"MEW_Manual_Q_R.xlsx",sep=""))
 MLL_QM <- read_xlsx(paste(config$streamflow_data_path,"MLL_Manual_Q_R.xlsx",sep=""))
@@ -84,6 +85,9 @@ PRY_QM <- read_xlsx(paste(config$streamflow_data_path,"PRY_Manual_Q_R.xlsx",sep=
 WHT_QM <- read_xlsx(paste(config$streamflow_data_path,"WHT_Manual_Q_R.xlsx",sep=""))
 
 #editing date format manual streamflow data
+BYS_QM$Date.Time = as.POSIXct(BYS_QM$Date.Time, tz="UTC",format= "%m/%d/%y %H:%M:%S")
+BYS_QM <- select(BYS_QM,c("Date.Time","Q.cfs"))
+BYS_QM <- rename(BYS_QM, Q.cfs.BYS = Q.cfs)
 CLD_QM$Date.Time = as.POSIXct(CLD_QM$Date.Time, tz="UTC",format= "%m/%d/%y %H:%M:%S")
 CLD_QM <- select(CLD_QM,c("Date.Time","Q.cfs"))
 CLD_QM <- rename(CLD_QM, Q.cfs.CLD = Q.cfs)
@@ -108,6 +112,7 @@ merged <- base::merge(MLL_Q, merged, by.x = "mill.dt2",by.y = "mew.dt2", all = T
 merged <- base::merge(PRY_Q, merged, by.x = "pry.dt2", by.y = "mill.dt2",all = TRUE)
 merged <- base::merge(WHT_Q, merged, by.x = "wht.dt2", by.y = "pry.dt2", all = TRUE)
 merged <- base::merge(CLD_QM,merged, by.x = "Date.Time", by.y = "wht.dt2", all=TRUE)
+merged <- base::merge(BYS_QM,merged, by = "Date.Time", all=TRUE)
 merged <- base::merge(MEW_QM,merged, by = "Date.Time", all=TRUE)
 merged <- base::merge(MLL_QM,merged, by = "Date.Time", all=TRUE)
 merged <- base::merge(PRY_QM,merged, by = "Date.Time", all=TRUE)
@@ -122,6 +127,7 @@ merged <- base::merge(BVS_P15, merged, by = "Date.Time", all=TRUE)
 merged <- base::merge(DRW_P15, merged, by = "Date.Time", all=TRUE)
 merged <- base::merge(WDG_P15, merged, by = "Date.Time", all=TRUE)
 
+BYS_M = merged$Q.cfs.BYS
 CLD_M = merged$Q.cfs.CLD
 MEW_M = merged$Q.cfs.MEW
 MLL_M = merged$Q.cfs.MLL
@@ -158,14 +164,17 @@ dischargeAx = list(side="left",title="Discharge (ft³/s)",showgrid=FALSE)
 
 ui <- fluidPage(
   
+  #set theme of app
   theme = shinytheme("sandstone"),
   
+  #make header panel with CW3E logo linked to website
   headerPanel(
     title=tags$a(href='https://cw3e.ucsd.edu/overview/',tags$img(src='logo.png', height = 80, width = 300), target="_blank"),
     tags$head(tags$link(rel = "icon", type = "image/png", href = "logo.png"))),
   
   titlePanel(strong("Streamflow Dashboard")),
   
+  #creating 3 tabs for dashboard
   tabsetPanel(type = "tabs",
               
               tabPanel("Hydrograph",
@@ -222,28 +231,31 @@ ui <- fluidPage(
               tabPanel("About", 
                        textOutput("info"),  
                        h3("Introduction:"),
-                       p("This application displays streamflow and precipitation data gathered by CW3E. Source code is available at the",a("CW3E Streamflow Dashboard GitHub Repository",href="https://github.com/anahitajensen/CW3E.StreamflowDashBoard")),
+                       p("This application displays streamflow and precipitation data gathered by CW3E. Source code is available at the",a("CW3E Streamflow Dashboard GitHub Repository",href="https://github.com/anahitajensen/CW3E.StreamflowDashBoard",".")),
                        h3("Hydrograph:"),
-                       p("A hydrograph is a chart showing, most often, river stage (height of the water above an arbitrary altitude) and streamflow (amount of water, usually in cubic feet per second). Other properties, such as rainfall and water-quality parameters can also be plotted."),          
+                       p("A hydrograph is a chart showing, most often, river stage (height of the water above an arbitrary altitude) and streamflow (amount of water, usually in cubic feet per second). Other properties, such as rainfall can also be plotted. This application gives the user the ability to choose either discharge or level to plot, with the option of adding precipitation to either plot (USGS)."),          
                        h3("Data Collection:"),
                        h4(em("Discharge (Flow):")),
                        p("Discharge data on this page is measured through multiple methods that will be described in detail below."),
-                       p("When using a",strong("current meter"),", a stream channel cross section is first divided into numerous vertical subsections. In each subsection, the area is obtained by measuring the width and depth of the subsection, and the water velocity is determined using a current meter. The discharge in each subsection is computed by multiplying the subsection area by the measured velocity. The total discharge is then computed by summing the discharge of each subsection."),
-                       p("When using",strong("ADCP (Acoustic Doppler Current Profiler)"),", the Doppler Effect is used to determine water velocity by sending a sound pulse into the water and measuring the change in frequency of that sound pulse reflected back to the ADCP by sediment or other particulates being transported in the water. The ADCP also uses acoustics to measure water depth by measuring the travel time of a pulse of sound to reach the river bottom at back to the ADCP. To make a discharge measurement, the ADCP is mounted onto a boat or into a small watercraft with its acoustic beams directed into the water from the water surface. The ADCP is then guided across the surface of the river to obtain measurements of velocity and depth across the channel. The river-bottom tracking capability of the ADCP acoustic beams or a Global Positioning System (GPS) is used to track the progress of the ADCP across the channel and provide channel-width measurements. Using the depth and width measurements for calculating the area and the velocity measurements, the discharge is computed by the ADCP using discharge = area x velocity, similar to the conventional current-meter method."),
+                       p("When using a",strong("current meter"),", a stream channel cross section is first divided into numerous vertical subsections. In each subsection, the area is obtained by measuring the width and depth of the subsection, and the water velocity is determined using a current meter. The discharge in each subsection is computed by multiplying the subsection area by the measured velocity. The total discharge is then computed by summing the discharge of each subsection (USGS)."),
+                       p("When using",strong("ADCP (Acoustic Doppler Current Profiler)"),", the Doppler Effect is used to determine water velocity by sending a sound pulse into the water and measuring the change in frequency of that sound pulse reflected back to the ADCP by sediment or other particulates being transported in the water. The ADCP also uses acoustics to measure water depth by measuring the travel time of a pulse of sound to reach the river bottom at back to the ADCP. To make a discharge measurement, the ADCP is mounted onto a boat or into a small watercraft with its acoustic beams directed into the water from the water surface. The ADCP is then guided across the surface of the river to obtain measurements of velocity and depth across the channel. The river-bottom tracking capability of the ADCP acoustic beams or a Global Positioning System (GPS) is used to track the progress of the ADCP across the channel and provide channel-width measurements. Using the depth and width measurements for calculating the area and the velocity measurements, the discharge is computed by the ADCP using discharge = area x velocity, similar to the conventional current-meter method (USGS)."),
                        p(strong("Computer Vision Stream Gaging (CVSG)")," captures stereo camera footage of the water surface, which is analyzed to estimate water level, surface velocities, and gauged discharge.  The system utilizes a cloud architecture that allows for remote management of device configurations, automated data processing, and integration of internal and external data sources (Hutley et al., 2022).CVSG is new technology developed by Xylem Inc., and is being used at CW3E's Santa Ana River site below Prado Dam (SAP)."),
                        h4(em("Level (Stage):")),
-                       p("Stage is measured by CW3E using Solinst leveloggers and barologgers. Leveloggers measure absolute pressure (water pressure + atmospheric pressure). Barologgers record atmospheric pressure. The most accurate method of obtaining changes in water level is to compensate for atmospheric pressure fluctuations using a Barologger 5, avoiding time lag in the compensation. The Barologger 5 is set above high water level in one location on site."),
+                       p("Stage is measured by CW3E using Solinst leveloggers and barologgers. Leveloggers measure absolute pressure (water pressure + atmospheric pressure). Barologgers record atmospheric pressure. The most accurate method of obtaining changes in water level is to compensate for atmospheric pressure fluctuations using a Barologger 5, avoiding time lag in the compensation. The Barologger 5 is set above high water level in one location on site, while the Levelogger is set in the water (Solinst)."),
                        h4(em("Precipitation:")),
                        p("CW3E’s surface meteorological stations measure precipitation, among other variables. Data is collected every two minutes."),
+                       h3("Current Status:"),
+                       p("The app is currently being developed. Data is raw and still being processed."),
                        br(),
                        h3("References:"),
-                       p(a("https://www.usgs.gov/special-topics/water-science-school/science/how-streamflow-measured")),
-                       p(a("https://www.usgs.gov/special-topics/water-science-school/science/streamflow-and-water-cycle")),
-                       p(a("https://cw3e.ucsd.edu/cw3e-surface-meteorology-observations/")),
-                       p(a("https://www.solinst.com/products/dataloggers-and-telemetry/3001-levelogger-series/levelogger/datasheet/barometric-compensation.php")),
-                       p("Hutley, N. R., Beecroft, R., Wagenaar, D., Soutar, J., Edwards, B., Deering, N., Grinham, A., and Albert, S.: Adaptively monitoring streamflow using a stereo computer vision system, EGUsphere [preprint],",a("https://doi.org/10.5194/egusphere-2022-735"),", 2022.")
+                       p(a("USGS: How Streamflow is Measured",href="https://www.usgs.gov/special-topics/water-science-school/science/how-streamflow-measured")),
+                       p(a("USGS: Streamflow and the Water Cycle",href="https://www.usgs.gov/special-topics/water-science-school/science/streamflow-and-water-cycle")),
+                       p(a("CW3E: Surface Meteorology Observations",href="https://cw3e.ucsd.edu/cw3e-surface-meteorology-observations/")),
+                       p(a("Solinst Barometric Compensation",href="https://www.solinst.com/products/dataloggers-and-telemetry/3001-levelogger-series/levelogger/datasheet/barometric-compensation.php")),
+                       p(a("Hutley, N. R., Beecroft, R., Wagenaar, D., Soutar, J., Edwards, B., Deering, N., Grinham, A., and Albert, S.: Adaptively monitoring streamflow using a stereo computer vision system, EGUsphere [preprint], 2022.",href="https://doi.org/10.5194/egusphere-2022-735"))
               )),
   
+  #this is to load CW3E logo
   imageOutput(outputId = "logo.png")
   
 )
@@ -266,6 +278,7 @@ server <- function(input,output,session){
     p <- plot_ly()
     
     if (input$var == "Discharge") {
+      
       # Add points for manual discharge data
       p <- add_trace(p,
                      data = filteredData,
@@ -275,8 +288,10 @@ server <- function(input,output,session){
                      mode = "markers",
                      marker = list(color = "darkgreen"),
                      name = "Manual Discharge")
+      
       ;
-      # Adding lines for discharge data
+      
+      # Add lines for discharge data
       p <- add_trace(p,
                      data = filteredData,
                      x = ~date,
@@ -286,7 +301,8 @@ server <- function(input,output,session){
                      line = list(color = '#2fa819', width = 1, dash = 'solid'),
                      name = "Discharge")
     } else {
-      # Adding lines for level data
+      
+      # Add lines for level data
       p <- add_trace(p,
                      data = filteredData,
                      x = ~date,
@@ -308,8 +324,9 @@ server <- function(input,output,session){
                   marker = list(color = "blue", width = 1),
                   name = 'Precipitation')
     
+    #if else statement to switch between discharge and level y-axis, x-axis and y-axis2 (right side) stay the same
     p <- layout(p,
-                xaxis = list(title = "Time (daily)"),
+                xaxis = list(title = "Time (15 minute intervals)"),
                 yaxis = if (input$var == "Discharge" | input$var == "Manual Discharge") {dischargeAx} else {levelAx},
                 yaxis2 = rainAx)
     
@@ -319,11 +336,12 @@ server <- function(input,output,session){
   
   #map of stations-------------------------------------------------------------------------------------------------------------
   
+  #color palette for the points
   RdYlBu <- colorFactor("RdYlBu",domain=stat_location$Site.Type)
   
   output$map <- renderLeaflet({
     leaflet(stat_location) %>%
-      addProviderTiles("Esri.WorldTopoMap") %>%                          #addProviderTiles("Stamen.Terrain") %>%
+      addProviderTiles("Esri.WorldTopoMap") %>%                         
       setView(map, lng = -119.7871, lat = 36.7378, zoom = 6)  %>%
       addCircleMarkers(lng=~stat_location$Longitude, lat=~stat_location$Latitude,
                        stroke = FALSE, fill=TRUE, fillOpacity=1,
