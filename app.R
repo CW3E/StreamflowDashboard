@@ -1,6 +1,6 @@
-#load packages ---------------------------------------------------------------------------------------------------------------------------
+#load packages---------------------------------------------------------------------------------------------------------------------------
 
-library(shiny)
+library(shiny)       
 library(ggplot2)
 library(dplyr)
 library(plotly) 
@@ -14,27 +14,33 @@ library(config)
 
 #data loading and formatting--------------------------------------------------------------------------------------------------------------
 
-#set environment and retrieve config file
+#set environment and retrieve config file, change "anahita" to your environment
 Sys.setenv(R_CONFIG_ACTIVE = "anahita")
 config <- config::get()                       
 setwd(config$root_dir)
 
-#station location data
+#station location data for data table on 'station location' tab, has CW3E stations and their coordinates
 stat_location <- read.csv(config$stat_location)
-stat_location$Site.Type <- gsub("SMOIL", "Smoil", stat_location$Site.Type)
+stat_location$Site.Type <- gsub("Smoil", "SMOIL", stat_location$Site.Type)
+#currently only data from stream, precip met, and smoil stations is being used in dashboard so only kept those
+stat_location <- stat_location[is.element(stat_location$Site.Type, c("Stream","Precip Met","SMOIL")),]
+#station location data for data table on 'hydrograph' tab, only has name/watershed/site.type
 stat_location2 <- read.csv(config$stat_location2)
 
-#precipitation data
+#precipitation data, preprocessed from Skyriver (aggregated to 15min from 2min)
 BCC_P15 <- read.csv(paste(config$precip_data_path, "/BCC_precip15min.csv", sep = ""), header = TRUE)
 BVS_P15 <- read.csv(paste(config$precip_data_path, "/BVS_precip15min.csv", sep = ""), header = TRUE)
 DRW_P15 <- read.csv(paste(config$precip_data_path, "/DRW_precip15min.csv", sep = ""), header = TRUE)
 WDG_P15 <- read.csv(paste(config$precip_data_path, "/WDG_precip15min.csv", sep = ""), header = TRUE)
 
-#format precipitation data dates
+#format precipitation data timestamps
 BCC_P15$Date.Time = as.POSIXct(BCC_P15$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 BVS_P15$Date.Time = as.POSIXct(BVS_P15$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 DRW_P15$Date.Time = as.POSIXct(DRW_P15$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 WDG_P15$Date.Time = as.POSIXct(WDG_P15$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
+
+#getting rid of NA values
+DRW_P15 <- DRW_P15[-(1:2501),]
 
 #stage data
 BYS_Le <- read.csv(paste(config$stage_data_path,"BYS_barocorrected_level.csv", sep = ""), header = TRUE)
@@ -52,7 +58,7 @@ MLL_Le$Date.Time = as.POSIXct(MLL_Le$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:
 PRY_Le$Date.Time = as.POSIXct(PRY_Le$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 WHT_Le$Date.Time = as.POSIXct(WHT_Le$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 
-#clean up stage data
+#clean up stage data, did this hopefully to make merging of all data faster
 BYS_Le <- select(BYS_Le,-"X")
 CLD_Le <- select(CLD_Le,-"X")
 MEW_Le <- select(MEW_Le,-"X")
@@ -84,7 +90,7 @@ MLL_QM <- read_xlsx(paste(config$streamflow_data_path,"MLL_Manual_Q_R.xlsx",sep=
 PRY_QM <- read_xlsx(paste(config$streamflow_data_path,"PRY_Manual_Q_R.xlsx",sep=""))
 WHT_QM <- read_xlsx(paste(config$streamflow_data_path,"WHT_Manual_Q_R.xlsx",sep=""))
 
-#editing date format manual streamflow data
+#format manual streamflow data timestamps, only keep necessary columns, rename cfs column to avoid same name when merging data
 BYS_QM$Date.Time = as.POSIXct(BYS_QM$Date.Time, tz="UTC",format= "%m/%d/%y %H:%M:%S")
 BYS_QM <- select(BYS_QM,c("Date.Time","Q.cfs"))
 BYS_QM <- rename(BYS_QM, Q.cfs.BYS = Q.cfs)
@@ -104,7 +110,10 @@ WHT_QM$Date.Time = as.POSIXct(WHT_QM$Date.Time, tz="UTC",format= "%m/%d/%y %H:%M
 WHT_QM <- select(WHT_QM,c("Date.Time","Q.cfs"))
 WHT_QM <- rename(WHT_QM, Q.cfs.WHT = Q.cfs)
 
-#merge precipitation with streamflow (using CLD_QM as test for manual data)
+#merge precipitation with streamflow
+#so this works (kind of), but it is quite slow and I think it might mess up some of the data
+#I did this because I kept having an error where the plot could not be created since the data was different sizes
+#needs to be changed
 merged <- base::merge(BYS_Q,BCC_P15, by.x ="bys.dt2", by.y = "Date.Time",all = TRUE)
 merged <- base::merge(CLD_Q, merged, by.x = "cld.dt2", by.y = "bys.dt2", all = TRUE)
 merged <- base::merge(MEW_Q, merged, by.x = "mew.dt2", by.y = "cld.dt2", all = TRUE)
@@ -127,6 +136,11 @@ merged <- base::merge(BVS_P15, merged, by = "Date.Time", all=TRUE)
 merged <- base::merge(DRW_P15, merged, by = "Date.Time", all=TRUE)
 merged <- base::merge(WDG_P15, merged, by = "Date.Time", all=TRUE)
 
+#taking out NA values
+merged <- merged[-(768169:3716001),]
+merged <- merged[-(1:4070),]
+
+#creating variables to make it easier to reference data in the hydrograph section of the server
 BYS_M = merged$Q.cfs.BYS
 CLD_M = merged$Q.cfs.CLD
 MEW_M = merged$Q.cfs.MEW
@@ -177,23 +191,27 @@ ui <- fluidPage(
   #creating 3 tabs for dashboard
   tabsetPanel(type = "tabs",
               
+              #first tab
               tabPanel("Hydrograph",
                        
                        sidebarLayout(   
                          
+                         #this is for the user inputs on the left side of the dashboard
                          sidebarPanel(position = "left",
                                       
+                                      #creates option for user to select the station
                                       selectizeInput(
-                                        inputId = "select_station",
-                                        label = "Select Station:",
-                                        choices = c("BYS","CLD","MEW","MLL","PRY","WHT"),
-                                        selected = "CLD"), 
+                                        inputId = "select_station",     #user does not see this, need this to reference in server
+                                        label = "Select Station:",      #user sees this
+                                        choices = c("BYS","CLD","MEW","MLL","PRY","WHT"),       
+                                        selected = "CLD"),              #the station that shows up when dashboard first loads
                                       
+                                      #creates option for user to select the variable 
                                       selectizeInput(
                                         inputId = "var",
                                         label = "Select Variable:",
                                         choices = list("Discharge","Level"), 
-                                        selected="Discharge"), 
+                                        selected = "Discharge"), 
                                       
                                       p(strong("Notes on Manual Discharge:")),
                                       p("To add or remove manual discharge points from the hydrograph, click on 
@@ -204,36 +222,46 @@ ui <- fluidPage(
                                          the legend located in the top right corner of the hydrograph."),
                                       p("*Please note that precipitation data will be taken from the closest available 
                                          surface meteorology station, which is different from the streamflow stations."),
-                                      br(),
+                                      br(), 
                                       
+                                      #creates option for user to select which date they range they want for hydrograph
+                                      #this currently does not work, but is needed for the plot to load somehow so don't take it out
                                       sliderInput(
                                         inputId = "date_range",
                                         label = "Select Date Range:",
-                                        min = as.POSIXct("2016-09-09 00:00:00"),
+                                        min = as.POSIXct("2016-09-09 00:00:00"),      
                                         max = as.POSIXct("2022-10-25 12:30:00"),
                                         value=c(as.POSIXct("2016-09-09 00:00:00"),
                                                 as.POSIXct("2022-10-25 12:30:00")),
                                         timeFormat="%Y-%m-%d %H:%M:%S")),
                          
+                         #this is what appears on the right side of the 'Hydrograph' tab, so the hydrograph, data table, and map
                          mainPanel(position = "right",
                                    plotlyOutput("graph"),
                                    br(),br(),
-                                   dataTableOutput("data_table2"),
+                                   column(6,leafletOutput("map2")),
+                                   column(6,dataTableOutput("data_table2")),
                                    plotlyOutput("selected_var"),
                                    plotlyOutput("selected_dates")
                          )
                        )),                         
               
+              #second tab with map and data table
               tabPanel("Location Map",
                        column(6, leafletOutput("map", height = "70vh")),
                        column(6, dataTableOutput("data_table"))),
               
+              #third tab with about section
               tabPanel("About", 
                        textOutput("info"),  
                        h3("Introduction:"),
                        p("This application displays streamflow and precipitation data gathered by CW3E. Source code is available at the",a("CW3E Streamflow Dashboard GitHub Repository",href="https://github.com/anahitajensen/CW3E.StreamflowDashBoard",".")),
                        h3("Hydrograph:"),
                        p("A hydrograph is a chart showing, most often, river stage (height of the water above an arbitrary altitude) and streamflow (amount of water, usually in cubic feet per second). Other properties, such as rainfall can also be plotted. This application gives the user the ability to choose either discharge or level to plot, with the option of adding precipitation to either plot (USGS)."),          
+                       h3("Site Type:"),
+                       p(strong("Stream:"),"Streamflow data is collected at these sites, through the processes detailed below in the 'Data Collection' section."),
+                       p(strong("Precip Met:"),"Precipitation data is collected at these sites."),
+                       p(strong("SMOIL:"),"SMOIL (CW3E specific term) stations collect various data, including air temperature, precipitation, wind speed, soil moisture, and soil temperature."),
                        h3("Data Collection:"),
                        h4(em("Discharge (Flow):")),
                        p("Discharge data on this page is measured through multiple methods that will be described in detail below."),
@@ -245,7 +273,7 @@ ui <- fluidPage(
                        h4(em("Precipitation:")),
                        p("CW3E’s surface meteorological stations measure precipitation, among other variables. Data is collected every two minutes."),
                        h3("Current Status:"),
-                       p("The app is currently being developed. Data is raw and still being processed."),
+                       p("The app is currently being developed. Data is mostly raw and still being processed."),
                        br(),
                        h3("References:"),
                        p(a("USGS: How Streamflow is Measured",href="https://www.usgs.gov/special-topics/water-science-school/science/how-streamflow-measured")),
@@ -265,25 +293,28 @@ ui <- fluidPage(
 server <- function(input,output,session){
   
   #hydrograph--------------------------------------------------------------------------------------------------------------------
-  manual <- reactive({paste0(input$select_station,"_M")})
-  y <- reactive({input$select_station})
-  level <- reactive({paste0(input$select_station,"_L")})
+  manual_discharge <- reactive({paste0(input$select_station,"_M")})   #this takes the station input and references the variable(ie: BYS_M) that I created in the data section
+  discharge <- reactive({input$select_station})                       #same as above for discharge
+  level <- reactive({paste0(input$select_station,"_L")})              #same as above for level
   
+  #creating the plot using plotly
   output$graph <- renderPlotly({
     
     req(input$var,input$date_range)
     
+    #this is connected to the date slider, currently doesn't work but keep it in, plot doesn't load without it
     filteredData <- subset(merged, Date.Time >= input$date_range[1] & Date.Time <= input$date_range[2])
     
     p <- plot_ly()
     
+    #if else statement is for changing plot based on what variable is selected 
     if (input$var == "Discharge") {
       
       # Add points for manual discharge data
       p <- add_trace(p,
                      data = filteredData,
                      x = ~date,
-                     y = ~base::get(manual()),
+                     y = ~base::get(manual_discharge()),
                      type = "scatter",
                      mode = "markers",
                      marker = list(color = "darkgreen"),
@@ -295,7 +326,7 @@ server <- function(input,output,session){
       p <- add_trace(p,
                      data = filteredData,
                      x = ~date,
-                     y = ~base::get(y()),
+                     y = ~base::get(discharge()),
                      type = "scatter",
                      mode = "lines",
                      line = list(color = '#2fa819', width = 1, dash = 'solid'),
@@ -324,7 +355,7 @@ server <- function(input,output,session){
                   marker = list(color = "blue", width = 1),
                   name = 'Precipitation')
     
-    #if else statement to switch between discharge and level y-axis, x-axis and y-axis2 (right side) stay the same
+    #if else statement to switch between discharge and level y-axis; x-axis and y-axis2 (right side) stay the same
     p <- layout(p,
                 xaxis = list(title = "Time (15 minute intervals)"),
                 yaxis = if (input$var == "Discharge" | input$var == "Manual Discharge") {dischargeAx} else {levelAx},
@@ -334,12 +365,35 @@ server <- function(input,output,session){
     
   })
   
-  #map of stations-------------------------------------------------------------------------------------------------------------
+  #map of stations for second tab-------------------------------------------------------------------------------------------------------------
   
   #color palette for the points
   RdYlBu <- colorFactor("RdYlBu",domain=stat_location$Site.Type)
   
   output$map <- renderLeaflet({
+    leaflet(stat_location) %>%
+      addProviderTiles("Esri.WorldTopoMap") %>%              #this is what the map looks like (many different options, can change)                      
+      setView(map, lng = -119.7871, lat = 36.7378, zoom = 6)  %>%   #how zoomed out the map is when it first loads, made it so that all stations show up       
+      #adding points for the stations
+      addCircleMarkers(lng=~stat_location$Longitude, lat=~stat_location$Latitude,         
+                       stroke = FALSE, fill=TRUE, fillOpacity=1,
+                       color = ~RdYlBu(stat_location$Site.Type),
+                       #what info pops up when you click on point
+                       popup=paste(stat_location$Name, "<br>",
+                                   "CW3E Code:", stat_location$CW3E.Code, "<br>",
+                                   "Watershed:", stat_location$Watershed, "<br>",
+                                   "Elevation:", stat_location$Elevation..Approx..m.,"m", "<br>",
+                                   "(",stat_location$Latitude,stat_location$Longitude,")"
+                       )) %>%
+      addLegend("topleft", pal=RdYlBu, values=stat_location$Site.Type, title="Site Type",opacity=1)
+  })
+  
+  #map of stations for first tab, same code as above-------------------------------------------------------------------------------------------------------------
+  
+  #color palette for the points
+  RdYlBu <- colorFactor("RdYlBu",domain=stat_location$Site.Type)
+  
+  output$map2 <- renderLeaflet({
     leaflet(stat_location) %>%
       addProviderTiles("Esri.WorldTopoMap") %>%                         
       setView(map, lng = -119.7871, lat = 36.7378, zoom = 6)  %>%
@@ -361,7 +415,7 @@ server <- function(input,output,session){
                                                           colnames = c("Site Name","Watershed","CW3E Code",
                                                                        "CDEC Code","CNRFC Code","Latitude",
                                                                        "Longitude","Elevation(m)","Site Type"),
-                                                          list(lengthMenu = c(5,10,20,45), pageLength = 8))})
+                                                          list(lengthMenu = c(5,10,20,33), pageLength = 8))})
   
   #data table under hydrograph tab-----------------------------------------------------------------------------------------------------
   
