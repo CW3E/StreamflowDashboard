@@ -1,4 +1,4 @@
-# StreamflowDashboard
+# Streamflow Dashboard
 
 # Description
 This app displays streamflow (discharge, manual discharge, stage) and precipitation data collected by CW3E at various sites across California. 
@@ -12,6 +12,8 @@ This code is organized into 3 main sections: data loading & processing, the UI (
 The 'About' tab on the app details how the data is collected. 
 
 # Sample Data
-Sample data is available in this repository, organized as it would be in Skyriver. 
+All data is taken from Skyriver. Sample data is available in this repository, organized as it would be in Skyriver. 
 
-The app is still a work in progress. 
+
+
+Please note that the app is still a work in progress. 
