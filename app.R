@@ -140,7 +140,7 @@ merged <- base::merge(WDG_P15, merged, by = "Date.Time", all=TRUE)
 merged <- merged[-(768169:3716001),]
 merged <- merged[-(1:4070),]
 
-#creating variables to make it easier to reference data in the hydrograph section of the server
+#creating variables to make it easier to reference data in the hydrograph section of the server, also needs to be changed
 BYS_M = merged$Q.cfs.BYS
 CLD_M = merged$Q.cfs.CLD
 MEW_M = merged$Q.cfs.MEW
@@ -181,7 +181,7 @@ ui <- fluidPage(
   #set theme of app
   theme = shinytheme("sandstone"),
   
-  #make header panel with CW3E logo linked to website
+  #make header panel with CW3E logo linked to CW3E website
   headerPanel(
     title=tags$a(href='https://cw3e.ucsd.edu/overview/',tags$img(src='logo.png', height = 80, width = 300), target="_blank"),
     tags$head(tags$link(rel = "icon", type = "image/png", href = "logo.png"))),
@@ -224,7 +224,7 @@ ui <- fluidPage(
                                          surface meteorology station, which is different from the streamflow stations."),
                                       br(), 
                                       
-                                      #creates option for user to select which date they range they want for hydrograph
+                                      #creates option for user to select which date range they want for hydrograph
                                       #this currently does not work, but is needed for the plot to load somehow so don't take it out
                                       sliderInput(
                                         inputId = "date_range",
@@ -235,7 +235,7 @@ ui <- fluidPage(
                                                 as.POSIXct("2022-10-25 12:30:00")),
                                         timeFormat="%Y-%m-%d %H:%M:%S")),
                          
-                         #this is what appears on the right side of the 'Hydrograph' tab, so the hydrograph, data table, and map
+                         #this is what appears on the right side of the 'Hydrograph' tab, so it's the hydrograph, data table, and map
                          mainPanel(position = "right",
                                    plotlyOutput("graph"),
                                    br(),br(),
@@ -307,7 +307,8 @@ server <- function(input,output,session){
     
     p <- plot_ly()
     
-    #if else statement is for changing plot based on what variable is selected 
+    #if else statement is for changing plot based on what variable is selected; manual discharge and discharge will plot if discharge selected
+    #level will plot if level selected, and precipitation plots regardless so it is outside of the if else statement
     if (input$var == "Discharge") {
       
       # Add points for manual discharge data
@@ -344,7 +345,8 @@ server <- function(input,output,session){
                      name = "Level")
     }
     
-    #add bars for precipitation
+    #add bars for precipitation, the if statements select the precipitation station based on the streamflow station chosen
+    #chose the precipitation stations closest to the streamflow station (in both distance & elevation), if you have a better way let me know
     p <- add_bars(p,
                   data = filteredData,
                   x = ~date,
@@ -390,7 +392,6 @@ server <- function(input,output,session){
   
   #map of stations for first tab, same code as above-------------------------------------------------------------------------------------------------------------
   
-  #color palette for the points
   RdYlBu <- colorFactor("RdYlBu",domain=stat_location$Site.Type)
   
   output$map2 <- renderLeaflet({
