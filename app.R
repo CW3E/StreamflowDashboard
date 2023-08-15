@@ -33,14 +33,14 @@ BVS_P15 <- read.csv(paste(config$precip_data_path, "/BVS_precip15min.csv", sep =
 DRW_P15 <- read.csv(paste(config$precip_data_path, "/DRW_precip15min.csv", sep = ""), header = TRUE)
 WDG_P15 <- read.csv(paste(config$precip_data_path, "/WDG_precip15min.csv", sep = ""), header = TRUE)
 
+#getting rid of bad values - not sure what happened w/ data but it just alternated between 3 and 4 inches for a couple thousand timestamps
+DRW_P15 <- DRW_P15[-(1:2502),]
+
 #format precipitation data timestamps
 BCC_P15$Date.Time = as.POSIXct(BCC_P15$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 BVS_P15$Date.Time = as.POSIXct(BVS_P15$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 DRW_P15$Date.Time = as.POSIXct(DRW_P15$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 WDG_P15$Date.Time = as.POSIXct(WDG_P15$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
-
-#getting rid of NA values
-DRW_P15 <- DRW_P15[-(1:2501),]
 
 #stage data
 BYS_Le <- read.csv(paste(config$stage_data_path,"BYS_barocorrected_level.csv", sep = ""), header = TRUE)
@@ -51,36 +51,34 @@ PRY_Le <- read.csv(paste(config$stage_data_path,"PRY_barocorrected_level.csv", s
 WHT_Le <- read.csv(paste(config$stage_data_path,"WHT_barocorrected_level.csv", sep = ""), header = TRUE)
 
 #format stage data timestamps
-BYS_Le$Date.Time = as.POSIXct(BYS_Le$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
-CLD_Le$Date.Time = as.POSIXct(CLD_Le$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
+BYS_Le$Date.Time = as.POSIXct(BYS_Le$Date.Time, tz= "UTC", format= "%m/%d/%Y %H:%M")
+CLD_Le$Date.Time = as.POSIXct(CLD_Le$Date.Time, tz= "UTC", format= "%m/%d/%Y %H:%M")
 MEW_Le$Date.Time = as.POSIXct(MEW_Le$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 MLL_Le$Date.Time = as.POSIXct(MLL_Le$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 PRY_Le$Date.Time = as.POSIXct(PRY_Le$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 WHT_Le$Date.Time = as.POSIXct(WHT_Le$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 
-#clean up stage data, did this hopefully to make merging of all data faster
-BYS_Le <- select(BYS_Le,-"X")
-CLD_Le <- select(CLD_Le,-"X")
-MEW_Le <- select(MEW_Le,-"X")
-MLL_Le <- select(MLL_Le,-"X")
-PRY_Le <- select(PRY_Le,-"X")
-WHT_Le <- select(WHT_Le,-"X")
-
 #streamflow data
 BYS_Q <- read.csv(paste(config$processed_csv_path,"BYS/Processed/BYS_LogLog_Q.csv", sep = ""), header = TRUE)
+BYS_Q <- rename(BYS_Q, Q.cfs = bys.q4, Date.Time = bys.dt2)
 CLD_Q <- read.csv(paste(config$processed_csv_path,"CLD/Processed/CLD_LogLog_Q.csv", sep = ""), header = TRUE)
+CLD_Q <- rename(CLD_Q, Q.cfs = cld.q3, Date.Time = cld.dt2)
 MEW_Q <- read.csv(paste(config$processed_csv_path,"MEW/Processed/MEW_LogLog_Q.csv", sep = ""), header = TRUE)
+MEW_Q <- rename(MEW_Q, Q.cfs = mew.q3, Date.Time = mew.dt2)
 MLL_Q <- read.csv(paste(config$processed_csv_path,"MLL/Processed/MLL_LogLog_Q.csv", sep = ""), header = TRUE)
+MLL_Q <- rename(MLL_Q, Q.cfs = mill.q3, Date.Time = mill.dt2)
 PRY_Q <- read.csv(paste(config$processed_csv_path,"PRY/Processed/PRY_LogLog_Q.csv", sep = ""), header = TRUE)
+PRY_Q <- rename(PRY_Q, Q.cfs = pry.q3, Date.Time = pry.dt2)
 WHT_Q <- read.csv(paste(config$processed_csv_path,"WHT/Processed/WHT_LogLog_Q.csv", sep = ""), header = TRUE)
+WHT_Q <- rename(WHT_Q, Q.cfs = wht.q3, Date.Time = wht.dt2)
 
 #format streamflow data timestamps
-BYS_Q$bys.dt2= as.POSIXct(BYS_Q$bys.dt2, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
-CLD_Q$cld.dt2= as.POSIXct(CLD_Q$cld.dt2, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
-MEW_Q$mew.dt2= as.POSIXct(MEW_Q$mew.dt2, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
-MLL_Q$mill.dt2=as.POSIXct(MLL_Q$mill.dt2,tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
-PRY_Q$pry.dt2= as.POSIXct(PRY_Q$pry.dt2, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
-WHT_Q$wht.dt2= as.POSIXct(WHT_Q$wht.dt2, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
+BYS_Q$Date.Time = as.POSIXct(BYS_Q$Date.Time, tz="UTC", format= "%Y-%m-%d %H:%M:%S")
+CLD_Q$Date.Time = as.POSIXct(CLD_Q$Date.Time, tz="UTC", format= "%Y-%m-%d %H:%M:%S")
+MEW_Q$Date.Time = as.POSIXct(MEW_Q$Date.Time, tz="UTC", format= "%Y-%m-%d %H:%M:%S")
+MLL_Q$Date.Time = as.POSIXct(MLL_Q$Date.Time, tz="UTC", format= "%Y-%m-%d %H:%M:%S")
+PRY_Q$Date.Time = as.POSIXct(PRY_Q$Date.Time, tz="UTC", format= "%Y-%m-%d %H:%M:%S")
+WHT_Q$Date.Time = as.POSIXct(WHT_Q$Date.Time, tz="UTC", format= "%Y-%m-%d %H:%M:%S")
 
 #manual streamflow data
 BYS_QM <- read_xlsx(paste(config$streamflow_data_path,"BYS_Manual_Q_R.xlsx",sep=""))     
@@ -90,80 +88,13 @@ MLL_QM <- read_xlsx(paste(config$streamflow_data_path,"MLL_Manual_Q_R.xlsx",sep=
 PRY_QM <- read_xlsx(paste(config$streamflow_data_path,"PRY_Manual_Q_R.xlsx",sep=""))
 WHT_QM <- read_xlsx(paste(config$streamflow_data_path,"WHT_Manual_Q_R.xlsx",sep=""))
 
-#format manual streamflow data timestamps, only keep necessary columns, rename cfs column to avoid same name when merging data
+#format manual streamflow data timestamps
 BYS_QM$Date.Time = as.POSIXct(BYS_QM$Date.Time, tz="UTC",format= "%m/%d/%y %H:%M:%S")
-BYS_QM <- select(BYS_QM,c("Date.Time","Q.cfs"))
-BYS_QM <- rename(BYS_QM, Q.cfs.BYS = Q.cfs)
 CLD_QM$Date.Time = as.POSIXct(CLD_QM$Date.Time, tz="UTC",format= "%m/%d/%y %H:%M:%S")
-CLD_QM <- select(CLD_QM,c("Date.Time","Q.cfs"))
-CLD_QM <- rename(CLD_QM, Q.cfs.CLD = Q.cfs)
 MEW_QM$Date.Time = as.POSIXct(MEW_QM$Date.Time, tz="UTC",format= "%m/%d/%y %H:%M:%S")
-MEW_QM <- select(MEW_QM,c("Date.Time","Q.cfs"))
-MEW_QM <- rename(MEW_QM, Q.cfs.MEW = Q.cfs)
 MLL_QM$Date.Time = as.POSIXct(MLL_QM$Date.Time, tz="UTC",format= "%m/%d/%y %H:%M:%S")
-MLL_QM <- select(MLL_QM,c("Date.Time","Q.cfs"))
-MLL_QM <- rename(MLL_QM, Q.cfs.MLL = Q.cfs)
 PRY_QM$Date.Time = as.POSIXct(PRY_QM$Date.Time, tz="UTC",format= "%m/%d/%y %H:%M:%S")
-PRY_QM <- select(PRY_QM,c("Date.Time","Q.cfs"))
-PRY_QM <- rename(PRY_QM, Q.cfs.PRY = Q.cfs)
 WHT_QM$Date.Time = as.POSIXct(WHT_QM$Date.Time, tz="UTC",format= "%m/%d/%y %H:%M:%S")
-WHT_QM <- select(WHT_QM,c("Date.Time","Q.cfs"))
-WHT_QM <- rename(WHT_QM, Q.cfs.WHT = Q.cfs)
-
-#merge precipitation with streamflow
-#so this works (kind of), but it is quite slow and I think it might mess up some of the data
-#I did this because I kept having an error where the plot could not be created since the data was different sizes
-#needs to be changed
-merged <- base::merge(BYS_Q,BCC_P15, by.x ="bys.dt2", by.y = "Date.Time",all = TRUE)
-merged <- base::merge(CLD_Q, merged, by.x = "cld.dt2", by.y = "bys.dt2", all = TRUE)
-merged <- base::merge(MEW_Q, merged, by.x = "mew.dt2", by.y = "cld.dt2", all = TRUE)
-merged <- base::merge(MLL_Q, merged, by.x = "mill.dt2",by.y = "mew.dt2", all = TRUE)
-merged <- base::merge(PRY_Q, merged, by.x = "pry.dt2", by.y = "mill.dt2",all = TRUE)
-merged <- base::merge(WHT_Q, merged, by.x = "wht.dt2", by.y = "pry.dt2", all = TRUE)
-merged <- base::merge(CLD_QM,merged, by.x = "Date.Time", by.y = "wht.dt2", all=TRUE)
-merged <- base::merge(BYS_QM,merged, by = "Date.Time", all=TRUE)
-merged <- base::merge(MEW_QM,merged, by = "Date.Time", all=TRUE)
-merged <- base::merge(MLL_QM,merged, by = "Date.Time", all=TRUE)
-merged <- base::merge(PRY_QM,merged, by = "Date.Time", all=TRUE)
-merged <- base::merge(WHT_QM,merged, by = "Date.Time", all=TRUE)
-merged <- base::merge(BYS_Le, merged, by = "Date.Time", all=TRUE)
-merged <- base::merge(CLD_Le, merged, by = "Date.Time", all=TRUE)
-merged <- base::merge(MEW_Le, merged, by = "Date.Time", all=TRUE)
-merged <- base::merge(MLL_Le, merged, by = "Date.Time", all=TRUE)
-merged <- base::merge(PRY_Le, merged, by = "Date.Time", all=TRUE)
-merged <- base::merge(WHT_Le, merged, by = "Date.Time", all=TRUE)
-merged <- base::merge(BVS_P15, merged, by = "Date.Time", all=TRUE)
-merged <- base::merge(DRW_P15, merged, by = "Date.Time", all=TRUE)
-merged <- base::merge(WDG_P15, merged, by = "Date.Time", all=TRUE)
-
-#taking out NA values
-merged <- merged[-(768169:3716001),]
-merged <- merged[-(1:4070),]
-
-#creating variables to make it easier to reference data in the hydrograph section of the server, also needs to be changed
-BYS_M = merged$Q.cfs.BYS
-CLD_M = merged$Q.cfs.CLD
-MEW_M = merged$Q.cfs.MEW
-MLL_M = merged$Q.cfs.MLL
-PRY_M = merged$Q.cfs.PRY
-WHT_M = merged$Q.cfs.WHT
-BYS_L = merged$level.in.BYS
-CLD_L = merged$level.in.CLD
-MEW_L = merged$level.in.MEW
-MLL_L = merged$level.in.MLL
-PRY_L = merged$level.in.PRY
-WHT_L = merged$level.in.WHT
-BYS = merged$bys.q4 
-CLD = merged$cld.q3 
-MEW = merged$mew.q3
-MLL = merged$mill.q3
-PRY = merged$pry.q3
-WHT = merged$wht.q3
-date = merged$Date.Time
-BCC = merged$rain_in_BCC
-BVS = merged$rain_in_BVS
-DRW = merged$rain_in_DRW
-WDG = merged$rain_in_WDG
 
 #set right y axis for precipitation
 rainAx = list(overlaying="y",side="right",title="Precipitation (inches)",range=c(1,0),showgrid=FALSE)
@@ -222,18 +153,16 @@ ui <- fluidPage(
                                          the legend located in the top right corner of the hydrograph."),
                                       p("*Please note that precipitation data will be taken from the closest available 
                                          surface meteorology station, which is different from the streamflow stations."),
-                                      br(), 
+                                      br()), 
                                       
-                                      #creates option for user to select which date range they want for hydrograph
-                                      #this currently does not work, but is needed for the plot to load somehow so don't take it out
-                                      sliderInput(
-                                        inputId = "date_range",
-                                        label = "Select Date Range:",
-                                        min = as.POSIXct("2016-09-09 00:00:00"),      
-                                        max = as.POSIXct("2022-10-25 12:30:00"),
-                                        value=c(as.POSIXct("2016-09-09 00:00:00"),
-                                                as.POSIXct("2022-10-25 12:30:00")),
-                                        timeFormat="%Y-%m-%d %H:%M:%S")),
+                                      #creates option for user to select which date range they want for hydrograph, does not work right now
+                                      #dateRangeInput(
+                                      #  inputId = "date_range",
+                                      #  label = "Select Date Range:",
+                                      #  min = as.POSIXct("2018-01-01"),      
+                                      #  max = as.POSIXct("2022-10-25"),
+                                      #  startview = c(as.POSIXct("2018-01-01"),as.POSIXct("2022-10-25")),
+                                      #  format="%Y-%m-%d")),
                          
                          #this is what appears on the right side of the 'Hydrograph' tab, so it's the hydrograph, data table, and map
                          mainPanel(position = "right",
@@ -293,29 +222,36 @@ ui <- fluidPage(
 server <- function(input,output,session){
   
   #hydrograph--------------------------------------------------------------------------------------------------------------------
-  manual_discharge <- reactive({paste0(input$select_station,"_M")})   #this takes the station input and references the variable(ie: BYS_M) that I created in the data section
-  discharge <- reactive({input$select_station})                       #same as above for discharge
-  level <- reactive({paste0(input$select_station,"_L")})              #same as above for level
   
-  #creating the plot using plotly
+  #takes the station input and creates a function that references the data frame specific to that variable and station
+  manual_discharge <- reactive({paste0(input$select_station,"_QM")})
+  discharge <- reactive({paste0(input$select_station,"_Q")})           
+  level <- reactive({paste0(input$select_station,"_Le")}) 
+  
+  #if statements select the precipitation station based on the streamflow station chosen
+  precipitation_x <- reactive({ if (input$select_station %in% c("BYS", "WHT")) BCC_P15$Date.Time else
+                                if (input$select_station %in% c("CLD", "PRY", "MLL")) DRW_P15$Date.Time else
+                                if (input$select_station == "MEW") WDG_P15$Date.Time })
+  
+  precipitation_y <- reactive({ if (input$select_station %in% c("BYS", "WHT")) BCC_P15$rain_in_BCC else
+                                if (input$select_station %in% c("CLD", "PRY", "MLL")) DRW_P15$rain_in_DRW else
+                                if (input$select_station == "MEW") WDG_P15$rain_in_WDG })
+  
+  #creating the plot
   output$graph <- renderPlotly({
     
-    req(input$var,input$date_range)
-    
-    #this is connected to the date slider, currently doesn't work but keep it in, plot doesn't load without it
-    filteredData <- subset(merged, Date.Time >= input$date_range[1] & Date.Time <= input$date_range[2])
+    req(input$var)
     
     p <- plot_ly()
     
     #if else statement is for changing plot based on what variable is selected; manual discharge and discharge will plot if discharge selected
-    #level will plot if level selected, and precipitation plots regardless so it is outside of the if else statement
+    #precipitation plots regardless so it is outside of the if else statement
     if (input$var == "Discharge") {
       
       # Add points for manual discharge data
       p <- add_trace(p,
-                     data = filteredData,
-                     x = ~date,
-                     y = ~base::get(manual_discharge()),
+                     x = ~base::get(manual_discharge())$Date.Time,
+                     y = ~base::get(manual_discharge())$Q.cfs,
                      type = "scatter",
                      mode = "markers",
                      marker = list(color = "darkgreen"),
@@ -325,9 +261,8 @@ server <- function(input,output,session){
       
       # Add lines for discharge data
       p <- add_trace(p,
-                     data = filteredData,
-                     x = ~date,
-                     y = ~base::get(discharge()),
+                     x = ~base::get(discharge())$Date.Time,
+                     y = ~base::get(discharge())$Q.cfs,
                      type = "scatter",
                      mode = "lines",
                      line = list(color = '#2fa819', width = 1, dash = 'solid'),
@@ -336,23 +271,18 @@ server <- function(input,output,session){
       
       # Add lines for level data
       p <- add_trace(p,
-                     data = filteredData,
-                     x = ~date,
-                     y = ~base::get(level()),
+                     x = ~base::get(level())$Date.Time,
+                     y = ~base::get(level())$level.in,
                      type = "scatter",
                      mode = "lines",
                      line = list(color = 'red', width = 1, dash = 'solid'),
                      name = "Level")
     }
     
-    #add bars for precipitation, the if statements select the precipitation station based on the streamflow station chosen
-    #chose the precipitation stations closest to the streamflow station (in both distance & elevation), if you have a better way let me know
+    #add bars for precipitation
     p <- add_bars(p,
-                  data = filteredData,
-                  x = ~date,
-                   y =  if (input$select_station %in% c("BYS", "WHT")) BCC else
-                        if (input$select_station %in% c("CLD", "PRY", "MLL")) DRW else
-                        if (input$select_station == "MEW") WDG,
+                  x = precipitation_x(),
+                  y = precipitation_y(),
                   yaxis = "y2",
                   marker = list(color = "blue", width = 1),
                   name = 'Precipitation')
@@ -392,6 +322,7 @@ server <- function(input,output,session){
   
   #map of stations for first tab, same code as above-------------------------------------------------------------------------------------------------------------
   
+ 
   RdYlBu <- colorFactor("RdYlBu",domain=stat_location$Site.Type)
   
   output$map2 <- renderLeaflet({
