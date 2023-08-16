@@ -24,11 +24,9 @@ The data came from Skyriver. I loaded all the datasets, grouped by variable. Mos
 All the user inputs occur in the UI section (like ‘Select Station’, ‘Select Variable’, etc). Each of these options is created using a ‘widget’ (see Shiny Basics link above). This has all the aesthetic formatting of the dashboard. This includes the ‘About’ section of the dashboard. 
 
 # The Server
-This takes the user inputs and changes the plot/outputs based on that. This includes the hydrograph, the data tables, and the maps. Precipitation stations are chosen by the closest to the streamflow station (in both distance & elevation), if you have a better way let me know. 
+This takes the user inputs and changes the plot/outputs based on that. This includes the hydrograph, the data tables, and the maps. Precipitation stations are chosen by the closest to the streamflow station (in both distance & elevation).
 
 # Package Versions I (Anahita) Used
-> sessionInfo()
-
 R version 4.2.2 (2022-10-31 ucrt)
 Platform: x86_64-w64-mingw32/x64 (64-bit)
 Running under: Windows 10 x64 (build 19045)
