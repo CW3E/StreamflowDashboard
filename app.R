@@ -42,6 +42,16 @@ BVS_P15$Date.Time = as.POSIXct(BVS_P15$Date.Time, tz= "UTC", format= "%Y-%m-%d %
 DRW_P15$Date.Time = as.POSIXct(DRW_P15$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 WDG_P15$Date.Time = as.POSIXct(WDG_P15$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 
+#if hourly instead of 15 minutes
+BCC_hourly <- BCC_P15 %>%  group_by(Date.Time = cut(Date.Time, "60 mins")) %>%  summarise(rain_in_BCC = sum(rain_in_BCC))
+BVS_hourly <- BVS_P15 %>%  group_by(Date.Time = cut(Date.Time, "60 mins")) %>%  summarise(rain_in_BVS = sum(rain_in_BVS))
+DRW_hourly <- DRW_P15 %>%  group_by(Date.Time = cut(Date.Time, "60 mins")) %>%  summarise(rain_in_DRW = sum(rain_in_DRW))
+WDG_hourly <- WDG_P15 %>%  group_by(Date.Time = cut(Date.Time, "60 mins")) %>%  summarise(rain_in_WDG = sum(rain_in_WDG))
+BCC_hourly$Date.Time = as.POSIXct(BCC_hourly$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
+BVS_hourly$Date.Time = as.POSIXct(BVS_hourly$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
+DRW_hourly$Date.Time = as.POSIXct(DRW_hourly$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
+WDG_hourly$Date.Time = as.POSIXct(WDG_hourly$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
+
 #stage data
 BYS_Le <- read.csv(paste(config$stage_data_path,"BYS_barocorrected_level.csv", sep = ""), header = TRUE)
 CLD_Le <- read.csv(paste(config$stage_data_path,"CLD_barocorrected_level.csv", sep = ""), header = TRUE)
@@ -59,17 +69,17 @@ PRY_Le$Date.Time = as.POSIXct(PRY_Le$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:
 WHT_Le$Date.Time = as.POSIXct(WHT_Le$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 
 #streamflow data
-BYS_Q <- read.csv(paste(config$processed_csv_path,"BYS/Processed/BYS_LogLog_Q.csv", sep = ""), header = TRUE)
+BYS_Q <- read.csv(paste(config$streamflow_data_path,"BYS/Processed/BYS_LogLog_Q.csv", sep = ""), header = TRUE)
 BYS_Q <- rename(BYS_Q, Q.cfs = bys.q4, Date.Time = bys.dt2)
-CLD_Q <- read.csv(paste(config$processed_csv_path,"CLD/Processed/CLD_LogLog_Q.csv", sep = ""), header = TRUE)
+CLD_Q <- read.csv(paste(config$streamflow_data_path,"CLD/Processed/CLD_LogLog_Q.csv", sep = ""), header = TRUE)
 CLD_Q <- rename(CLD_Q, Q.cfs = cld.q3, Date.Time = cld.dt2)
-MEW_Q <- read.csv(paste(config$processed_csv_path,"MEW/Processed/MEW_LogLog_Q.csv", sep = ""), header = TRUE)
+MEW_Q <- read.csv(paste(config$streamflow_data_path,"MEW/Processed/MEW_LogLog_Q.csv", sep = ""), header = TRUE)
 MEW_Q <- rename(MEW_Q, Q.cfs = mew.q3, Date.Time = mew.dt2)
-MLL_Q <- read.csv(paste(config$processed_csv_path,"MLL/Processed/MLL_LogLog_Q.csv", sep = ""), header = TRUE)
+MLL_Q <- read.csv(paste(config$streamflow_data_path,"MLL/Processed/MLL_LogLog_Q.csv", sep = ""), header = TRUE)
 MLL_Q <- rename(MLL_Q, Q.cfs = mill.q3, Date.Time = mill.dt2)
-PRY_Q <- read.csv(paste(config$processed_csv_path,"PRY/Processed/PRY_LogLog_Q.csv", sep = ""), header = TRUE)
+PRY_Q <- read.csv(paste(config$streamflow_data_path,"PRY/Processed/PRY_LogLog_Q.csv", sep = ""), header = TRUE)
 PRY_Q <- rename(PRY_Q, Q.cfs = pry.q3, Date.Time = pry.dt2)
-WHT_Q <- read.csv(paste(config$processed_csv_path,"WHT/Processed/WHT_LogLog_Q.csv", sep = ""), header = TRUE)
+WHT_Q <- read.csv(paste(config$streamflow_data_path,"WHT/Processed/WHT_LogLog_Q.csv", sep = ""), header = TRUE)
 WHT_Q <- rename(WHT_Q, Q.cfs = wht.q3, Date.Time = wht.dt2)
 
 #format streamflow data timestamps
@@ -81,12 +91,12 @@ PRY_Q$Date.Time = as.POSIXct(PRY_Q$Date.Time, tz="UTC", format= "%Y-%m-%d %H:%M:
 WHT_Q$Date.Time = as.POSIXct(WHT_Q$Date.Time, tz="UTC", format= "%Y-%m-%d %H:%M:%S")
 
 #manual streamflow data
-BYS_QM <- read_xlsx(paste(config$streamflow_data_path,"BYS_Manual_Q_R.xlsx",sep=""))     
-CLD_QM <- read_xlsx(paste(config$streamflow_data_path,"CLD_Manual_Q_R.xlsx",sep=""))
-MEW_QM <- read_xlsx(paste(config$streamflow_data_path,"MEW_Manual_Q_R.xlsx",sep=""))
-MLL_QM <- read_xlsx(paste(config$streamflow_data_path,"MLL_Manual_Q_R.xlsx",sep=""))
-PRY_QM <- read_xlsx(paste(config$streamflow_data_path,"PRY_Manual_Q_R.xlsx",sep=""))
-WHT_QM <- read_xlsx(paste(config$streamflow_data_path,"WHT_Manual_Q_R.xlsx",sep=""))
+BYS_QM <- read_xlsx(paste(config$manual_streamflow_data_path,"BYS_Manual_Q_R.xlsx",sep=""))     
+CLD_QM <- read_xlsx(paste(config$manual_streamflow_data_path,"CLD_Manual_Q_R.xlsx",sep=""))
+MEW_QM <- read_xlsx(paste(config$manual_streamflow_data_path,"MEW_Manual_Q_R.xlsx",sep=""))
+MLL_QM <- read_xlsx(paste(config$manual_streamflow_data_path,"MLL_Manual_Q_R.xlsx",sep=""))
+PRY_QM <- read_xlsx(paste(config$manual_streamflow_data_path,"PRY_Manual_Q_R.xlsx",sep=""))
+WHT_QM <- read_xlsx(paste(config$manual_streamflow_data_path,"WHT_Manual_Q_R.xlsx",sep=""))
 
 #format manual streamflow data timestamps
 BYS_QM$Date.Time = as.POSIXct(BYS_QM$Date.Time, tz="UTC",format= "%m/%d/%y %H:%M:%S")
@@ -153,16 +163,17 @@ ui <- fluidPage(
                                          the legend located in the top right corner of the hydrograph."),
                                       p("*Please note that precipitation data will be taken from the closest available 
                                          surface meteorology station, which is different from the streamflow stations."),
-                                      br()), 
+                                      br(), 
                                       
                                       #creates option for user to select which date range they want for hydrograph, does not work right now
-                                      #dateRangeInput(
-                                      #  inputId = "date_range",
-                                      #  label = "Select Date Range:",
-                                      #  min = as.POSIXct("2018-01-01"),      
-                                      #  max = as.POSIXct("2022-10-25"),
-                                      #  startview = c(as.POSIXct("2018-01-01"),as.POSIXct("2022-10-25")),
-                                      #  format="%Y-%m-%d")),
+                                      dateRangeInput(
+                                        inputId = "date_range",
+                                        label = "Select Date Range:",
+                                        start = as.POSIXct("2018-01-01"),      
+                                        end = as.POSIXct("2022-10-25"),
+                                        min = as.POSIXct("2018-01-01"),      
+                                        max = as.POSIXct("2022-10-25"),
+                                       )),
                          
                          #this is what appears on the right side of the 'Hydrograph' tab, so it's the hydrograph, data table, and map
                          mainPanel(position = "right",
@@ -229,13 +240,14 @@ server <- function(input,output,session){
   level <- reactive({paste0(input$select_station,"_Le")}) 
   
   #if statements select the precipitation station based on the streamflow station chosen
-  precipitation_x <- reactive({ if (input$select_station %in% c("BYS", "WHT")) BCC_P15$Date.Time else
-                                if (input$select_station %in% c("CLD", "PRY", "MLL")) DRW_P15$Date.Time else
-                                if (input$select_station == "MEW") WDG_P15$Date.Time })
+  #switch MEW from WDG TO PVN
+  precipitation_x <- reactive({ if (input$select_station %in% c("BYS", "MLL")) BCC_hourly$Date.Time else
+                                if (input$select_station %in% c("CLD", "PRY", "WHT")) DRW_hourly$Date.Time else
+                                if (input$select_station == "MEW") WDG_hourly$Date.Time })
   
-  precipitation_y <- reactive({ if (input$select_station %in% c("BYS", "WHT")) BCC_P15$rain_in_BCC else
-                                if (input$select_station %in% c("CLD", "PRY", "MLL")) DRW_P15$rain_in_DRW else
-                                if (input$select_station == "MEW") WDG_P15$rain_in_WDG })
+  precipitation_y <- reactive({ if (input$select_station %in% c("BYS", "MLL")) BCC_hourly$rain_in_BCC else
+                                if (input$select_station %in% c("CLD", "PRY", "WHT")) DRW_hourly$rain_in_DRW else
+                                if (input$select_station == "MEW") WDG_hourly$rain_in_WDG })
   
   #creating the plot
   output$graph <- renderPlotly({
@@ -296,6 +308,8 @@ server <- function(input,output,session){
     return(p)
     
   })
+  
+ 
   
   #map of stations for second tab-------------------------------------------------------------------------------------------------------------
   
