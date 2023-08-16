@@ -5,9 +5,9 @@ Contact Anahita Jensen (a7jensen@ucsd.edu, anahita.onyx@gmail.com) with question
 The app displays streamflow (discharge, manual discharge, stage) and precipitation data collected by CW3E at various sites across California. The app was created using the Shiny package in R. The user can customize the hydrograph by choosing variables and locations to suit their purposes. 
 
 # Helpful Links
-Shiny Basics, good for understanding formatting of code: https://shiny.posit.co/r/getstarted/shiny-basics/lesson1/index.html
-Shiny Dashboard Examples, if you want to see other apps' code: https://shiny.posit.co/r/gallery/
-Manual Discharge File Update Process: https://docs.google.com/document/d/10jDUoGGsu6WNDdUU6q4eKx2tOvcpWmxcnOr9RBisDP8/edit#heading=h.dnhwnvz2emgf
+Shiny Basics, good for understanding formatting of code: https://shiny.posit.co/r/getstarted/shiny-basics/lesson1/index.html   
+Shiny Dashboard Examples, if you want to see other apps' code: https://shiny.posit.co/r/gallery/   
+Manual Discharge File Update Process: https://docs.google.com/document/d/10jDUoGGsu6WNDdUU6q4eKx2tOvcpWmxcnOr9RBisDP8/edit#heading=h.dnhwnvz2emgf   
 
 # Config.yml file 
 This configuration file allows you to define various paths and settings for different environments, such as different users or machines. This file is to make the app deployable on the website, and not just your personal computer. You can either add your own environment with your own paths, or use the default environment. If you are adding code with datapaths, make sure to update all of the environments in the config.yml file in GitHub. For a specific environment (ie “anahita”) the relative file paths are defined for each variable, with the root directory also being defined. Root directory + relative file path  = absolute path. Then in the script for the app, you use the path name (ie “streamflow_data_path”) to load the data. Each environment may have different paths but they all need to have the same path names (ie “streamflow_data_path”) so that the app code doesn’t need to be changed depending on who is running it. 
