@@ -6,7 +6,9 @@ The app displays streamflow (discharge, manual discharge, stage) and precipitati
 
 # Helpful Links
 Shiny Basics, good for understanding formatting of code: https://shiny.posit.co/r/getstarted/shiny-basics/lesson1/index.html   
+
 Shiny Dashboard Examples, if you want to see other apps' code: https://shiny.posit.co/r/gallery/   
+
 Manual Discharge File Update Process: https://docs.google.com/document/d/10jDUoGGsu6WNDdUU6q4eKx2tOvcpWmxcnOr9RBisDP8/edit#heading=h.dnhwnvz2emgf   
 
 # Config.yml file 
