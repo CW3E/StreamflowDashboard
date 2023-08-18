@@ -11,6 +11,7 @@ library(DT)
 library(tidyverse)
 library(anytime)
 library(config)
+library(htmlwidgets)
 
 #data loading and formatting--------------------------------------------------------------------------------------------------------------
 
@@ -42,7 +43,7 @@ BVS_P15$Date.Time = as.POSIXct(BVS_P15$Date.Time, tz= "UTC", format= "%Y-%m-%d %
 DRW_P15$Date.Time = as.POSIXct(DRW_P15$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 WDG_P15$Date.Time = as.POSIXct(WDG_P15$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
 
-#if hourly instead of 15 minutes
+#change precipitation data to hourly, if you want it to be 15 minutes then just comment this code block out
 BCC_hourly <- BCC_P15 %>%  group_by(Date.Time = cut(Date.Time, "60 mins")) %>%  summarise(rain_in_BCC = sum(rain_in_BCC))
 BVS_hourly <- BVS_P15 %>%  group_by(Date.Time = cut(Date.Time, "60 mins")) %>%  summarise(rain_in_BVS = sum(rain_in_BVS))
 DRW_hourly <- DRW_P15 %>%  group_by(Date.Time = cut(Date.Time, "60 mins")) %>%  summarise(rain_in_DRW = sum(rain_in_DRW))
@@ -163,6 +164,9 @@ ui <- fluidPage(
                                          the legend located in the top right corner of the hydrograph."),
                                       p("*Please note that precipitation data will be taken from the closest available 
                                          surface meteorology station, which is different from the streamflow stations."),
+                                      p(strong("Pairing of Streamflow Sites with Surface Met (Precipitation) Sites:")),
+                                      p("Format: Streamflow Site(Surface Met Site)"),
+                                      p("CLD(DRW),  PRY(DRW),  WHT(DRW),  BYS(BCC),  MLL(BCC),  MEW(WDG)"),
                                       br(), 
                                       
                                       #creates option for user to select which date range they want for hydrograph, does not work right now
@@ -305,11 +309,47 @@ server <- function(input,output,session){
                 yaxis = if (input$var == "Discharge" | input$var == "Manual Discharge") {dischargeAx} else {levelAx},
                 yaxis2 = rainAx)
     
+    #add field camera photos that pop up when hovering over graph, does not work but also doesn't prevent app from working
+    #could an issue with this be that the photo's dates are not connecting to the dates on the graph?
+    p %>% htmlwidgets::onRender("
+    function(el, x) {
+      // when hovering over an element, do something
+      el.on('plotly_hover', function(d) {
+        
+        // extract tooltip text
+        console.log(d)
+        p = d.points[0].pointIndex;
+        path = d.points[0].data.key[p]
+        console.log(p)
+        console.log(path)
+        // image is stored locally
+        image_location = 'https://raw.githubusercontent.com/seogle/PRY_thumbnails/main/PRY_all/' + path
+        console.log(image_location);
+    
+        // define image to be shown
+        var img = {
+          // location of image
+          source: image_location, 
+          // top-left corner
+          x: 0.4,
+          y: 1,
+          sizex: 0.2,
+          sizey: 0.2,
+          xref: 'paper',
+          yref: 'paper'
+        };
+
+        // show image and annotation 
+        Plotly.relayout(el.id, {
+            images: [img] 
+        });
+      })
+    }
+    ")
+    
     return(p)
     
   })
-  
- 
   
   #map of stations for second tab-------------------------------------------------------------------------------------------------------------
   
