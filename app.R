@@ -28,84 +28,54 @@ stat_location <- stat_location[is.element(stat_location$Site.Type, c("Stream","P
 #station location data for data table on 'hydrograph' tab, only has name/watershed/site.type
 stat_location2 <- read.csv(config$stat_location2)
 
-#precipitation data, preprocessed from Skyriver (aggregated to 15min from 2min)
-BCC_P15 <- read.csv(paste(config$precip_data_path, "/BCC_precip15min.csv", sep = ""), header = TRUE)
-BVS_P15 <- read.csv(paste(config$precip_data_path, "/BVS_precip15min.csv", sep = ""), header = TRUE)
-DRW_P15 <- read.csv(paste(config$precip_data_path, "/DRW_precip15min.csv", sep = ""), header = TRUE)
-WDG_P15 <- read.csv(paste(config$precip_data_path, "/WDG_precip15min.csv", sep = ""), header = TRUE)
+#for loop for precipitation data, add new station to 'stations' below (will work as long as data is formatted the exact same, see data in GitHub to view formatting style)
 
-#getting rid of bad values - not sure what happened w/ data but it just alternated between 3 and 4 inches for a couple thousand timestamps
-DRW_P15 <- DRW_P15[-(1:2502),]
+stations <- c("BCC","BVS","DRW","WDG")
 
-#format precipitation data timestamps
-BCC_P15$Date.Time = as.POSIXct(BCC_P15$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
-BVS_P15$Date.Time = as.POSIXct(BVS_P15$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
-DRW_P15$Date.Time = as.POSIXct(DRW_P15$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
-WDG_P15$Date.Time = as.POSIXct(WDG_P15$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
+for (station in stations) {
+  
+  precip_data <- read.csv(paste(config$precip_data_path, paste("/",station,"_precip15min.csv", sep = ""), sep = ""), header = TRUE)
+  if (station == "DRW") {precip_data <- precip_data[-(1:2502),]}        #DRW had very obviously incorrect values so I got rid of them, not sure why
+  
+  #format timestamps
+  precip_data$Date.Time <- as.POSIXct(precip_data$Date.Time, tz = "UTC", format =  "%m/%d/%Y %H:%M")
 
-#change precipitation data to hourly, if you want it to be 15 minutes then just comment this code block out
-BCC_hourly <- BCC_P15 %>%  group_by(Date.Time = cut(Date.Time, "60 mins")) %>%  summarise(rain_in_BCC = sum(rain_in_BCC))
-BVS_hourly <- BVS_P15 %>%  group_by(Date.Time = cut(Date.Time, "60 mins")) %>%  summarise(rain_in_BVS = sum(rain_in_BVS))
-DRW_hourly <- DRW_P15 %>%  group_by(Date.Time = cut(Date.Time, "60 mins")) %>%  summarise(rain_in_DRW = sum(rain_in_DRW))
-WDG_hourly <- WDG_P15 %>%  group_by(Date.Time = cut(Date.Time, "60 mins")) %>%  summarise(rain_in_WDG = sum(rain_in_WDG))
-BCC_hourly$Date.Time = as.POSIXct(BCC_hourly$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
-BVS_hourly$Date.Time = as.POSIXct(BVS_hourly$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
-DRW_hourly$Date.Time = as.POSIXct(DRW_hourly$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
-WDG_hourly$Date.Time = as.POSIXct(WDG_hourly$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
+  #make data hourly instead of 15 minutes
+  precip_data_hourly <- precip_data %>%  group_by(Date.Time = cut(Date.Time, "60 mins")) %>%  summarise("rain_in" = sum(!!sym("rain_in")))
+  precip_data_hourly$Date.Time <- as.POSIXct(precip_data_hourly$Date.Time, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
+  assign(paste(station, "_hourly", sep = ""), precip_data_hourly)
+  }
 
-#stage data
-BYS_Le <- read.csv(paste(config$stage_data_path,"BYS_barocorrected_level.csv", sep = ""), header = TRUE)
-CLD_Le <- read.csv(paste(config$stage_data_path,"CLD_barocorrected_level.csv", sep = ""), header = TRUE)
-MEW_Le <- read.csv(paste(config$stage_data_path,"MEW_barocorrected_level.csv", sep = ""), header = TRUE)
-MLL_Le <- read.csv(paste(config$stage_data_path,"MLL_barocorrected_level.csv", sep = ""), header = TRUE)
-PRY_Le <- read.csv(paste(config$stage_data_path,"PRY_barocorrected_level.csv", sep = ""), header = TRUE)
-WHT_Le <- read.csv(paste(config$stage_data_path,"WHT_barocorrected_level.csv", sep = ""), header = TRUE)
+#for loop for stage, discharge, manual discharge data; add new site to 'sites' below
 
-#format stage data timestamps
-BYS_Le$Date.Time = as.POSIXct(BYS_Le$Date.Time, tz= "UTC", format= "%m/%d/%Y %H:%M")
-CLD_Le$Date.Time = as.POSIXct(CLD_Le$Date.Time, tz= "UTC", format= "%m/%d/%Y %H:%M")
-MEW_Le$Date.Time = as.POSIXct(MEW_Le$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
-MLL_Le$Date.Time = as.POSIXct(MLL_Le$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
-PRY_Le$Date.Time = as.POSIXct(PRY_Le$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
-WHT_Le$Date.Time = as.POSIXct(WHT_Le$Date.Time, tz= "UTC", format= "%Y-%m-%d %H:%M:%S")
+sites <- c("BYS","CLD","MEW","MLL","PRY","WHT")
 
-#streamflow data
-BYS_Q <- read.csv(paste(config$streamflow_data_path,"BYS/Processed/BYS_LogLog_Q.csv", sep = ""), header = TRUE)
-BYS_Q <- rename(BYS_Q, Q.cfs = bys.q4, Date.Time = bys.dt2)
-CLD_Q <- read.csv(paste(config$streamflow_data_path,"CLD/Processed/CLD_LogLog_Q.csv", sep = ""), header = TRUE)
-CLD_Q <- rename(CLD_Q, Q.cfs = cld.q3, Date.Time = cld.dt2)
-MEW_Q <- read.csv(paste(config$streamflow_data_path,"MEW/Processed/MEW_LogLog_Q.csv", sep = ""), header = TRUE)
-MEW_Q <- rename(MEW_Q, Q.cfs = mew.q3, Date.Time = mew.dt2)
-MLL_Q <- read.csv(paste(config$streamflow_data_path,"MLL/Processed/MLL_LogLog_Q.csv", sep = ""), header = TRUE)
-MLL_Q <- rename(MLL_Q, Q.cfs = mill.q3, Date.Time = mill.dt2)
-PRY_Q <- read.csv(paste(config$streamflow_data_path,"PRY/Processed/PRY_LogLog_Q.csv", sep = ""), header = TRUE)
-PRY_Q <- rename(PRY_Q, Q.cfs = pry.q3, Date.Time = pry.dt2)
-WHT_Q <- read.csv(paste(config$streamflow_data_path,"WHT/Processed/WHT_LogLog_Q.csv", sep = ""), header = TRUE)
-WHT_Q <- rename(WHT_Q, Q.cfs = wht.q3, Date.Time = wht.dt2)
+for (site in sites) {
 
-#format streamflow data timestamps
-BYS_Q$Date.Time = as.POSIXct(BYS_Q$Date.Time, tz="UTC", format= "%Y-%m-%d %H:%M:%S")
-CLD_Q$Date.Time = as.POSIXct(CLD_Q$Date.Time, tz="UTC", format= "%Y-%m-%d %H:%M:%S")
-MEW_Q$Date.Time = as.POSIXct(MEW_Q$Date.Time, tz="UTC", format= "%Y-%m-%d %H:%M:%S")
-MLL_Q$Date.Time = as.POSIXct(MLL_Q$Date.Time, tz="UTC", format= "%Y-%m-%d %H:%M:%S")
-PRY_Q$Date.Time = as.POSIXct(PRY_Q$Date.Time, tz="UTC", format= "%Y-%m-%d %H:%M:%S")
-WHT_Q$Date.Time = as.POSIXct(WHT_Q$Date.Time, tz="UTC", format= "%Y-%m-%d %H:%M:%S")
+  #stage data
+  stage_data <- read.csv(paste(config$stage_data_path, paste(site,"_barocorrected_level.csv", sep = ""), sep = ""), header = TRUE)
 
-#manual streamflow data
-BYS_QM <- read_xlsx(paste(config$manual_streamflow_data_path,"BYS_Manual_Q_R.xlsx",sep=""))     
-CLD_QM <- read_xlsx(paste(config$manual_streamflow_data_path,"CLD_Manual_Q_R.xlsx",sep=""))
-MEW_QM <- read_xlsx(paste(config$manual_streamflow_data_path,"MEW_Manual_Q_R.xlsx",sep=""))
-MLL_QM <- read_xlsx(paste(config$manual_streamflow_data_path,"MLL_Manual_Q_R.xlsx",sep=""))
-PRY_QM <- read_xlsx(paste(config$manual_streamflow_data_path,"PRY_Manual_Q_R.xlsx",sep=""))
-WHT_QM <- read_xlsx(paste(config$manual_streamflow_data_path,"WHT_Manual_Q_R.xlsx",sep=""))
-
-#format manual streamflow data timestamps
-BYS_QM$Date.Time = as.POSIXct(BYS_QM$Date.Time, tz="UTC",format= "%m/%d/%y %H:%M:%S")
-CLD_QM$Date.Time = as.POSIXct(CLD_QM$Date.Time, tz="UTC",format= "%m/%d/%y %H:%M:%S")
-MEW_QM$Date.Time = as.POSIXct(MEW_QM$Date.Time, tz="UTC",format= "%m/%d/%y %H:%M:%S")
-MLL_QM$Date.Time = as.POSIXct(MLL_QM$Date.Time, tz="UTC",format= "%m/%d/%y %H:%M:%S")
-PRY_QM$Date.Time = as.POSIXct(PRY_QM$Date.Time, tz="UTC",format= "%m/%d/%y %H:%M:%S")
-WHT_QM$Date.Time = as.POSIXct(WHT_QM$Date.Time, tz="UTC",format= "%m/%d/%y %H:%M:%S")
+  #format stage data timestamps
+  stage_data$Date.Time <- as.POSIXct(stage_data$Date.Time, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
+  
+  #discharge data
+  streamflow_data <- read.csv(paste(config$streamflow_data_path, paste(site, "/Processed/", site, "_LogLog_Q_GM.csv", sep = ""), sep = ""), header = TRUE)
+  streamflow_data <- rename(streamflow_data, Q.cfs = paste(tolower(site), ".q3", sep = ""), Date.Time = paste(tolower(site), ".dt2", sep = ""))
+  
+  #format discharge data timestamps
+  streamflow_data$Date.Time <- as.POSIXct(streamflow_data$Date.Time, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
+  
+  #manual discharge data
+  manual_streamflow_data <- read_xlsx(paste(config$manual_streamflow_data_path, paste(site, "_Manual_Q_R.xlsx", sep = ""), sep = ""))
+  
+  #format manual discharge data timestamps
+  manual_streamflow_data$Date.Time <- as.POSIXct(manual_streamflow_data$Date.Time, tz = "UTC", format = "%m/%d/%y %H:%M:%S")
+  
+  #assign the data frames to specific variables
+  assign(paste(site, "_Le", sep = ""), stage_data)
+  assign(paste(site, "_Q", sep = ""), streamflow_data)
+  assign(paste(site, "_QM", sep = ""), manual_streamflow_data)
+}
 
 #set right y axis for precipitation
 rainAx = list(overlaying="y",side="right",title="Precipitation (inches)",range=c(1,0),showgrid=FALSE)
@@ -121,7 +91,7 @@ dischargeAx = list(side="left",title="Discharge (ft³/s)",showgrid=FALSE)
 ui <- fluidPage(
   
   #set theme of app
-  theme = shinytheme("sandstone"),
+  theme = shinytheme("flatly"),
   
   #make header panel with CW3E logo linked to CW3E website
   headerPanel(
@@ -174,9 +144,9 @@ ui <- fluidPage(
                                         inputId = "date_range",
                                         label = "Select Date Range:",
                                         start = as.POSIXct("2018-01-01"),      
-                                        end = as.POSIXct("2022-10-25"),
+                                        end = as.POSIXct("2023-01-01"),
                                         min = as.POSIXct("2018-01-01"),      
-                                        max = as.POSIXct("2022-10-25"),
+                                        max = as.POSIXct("2023-01-01"),
                                        )),
                          
                          #this is what appears on the right side of the 'Hydrograph' tab, so it's the hydrograph, data table, and map
@@ -237,23 +207,37 @@ ui <- fluidPage(
 server <- function(input,output,session){
   
   #hydrograph--------------------------------------------------------------------------------------------------------------------
-  
+
   #takes the station input and creates a function that references the data frame specific to that variable and station
   manual_discharge <- reactive({paste0(input$select_station,"_QM")})
   discharge <- reactive({paste0(input$select_station,"_Q")})           
   level <- reactive({paste0(input$select_station,"_Le")}) 
   
-  #if statements select the precipitation station based on the streamflow station chosen
-  #switch MEW from WDG TO PVN
-  precipitation_x <- reactive({ if (input$select_station %in% c("BYS", "MLL")) BCC_hourly$Date.Time else
-                                if (input$select_station %in% c("CLD", "PRY", "WHT")) DRW_hourly$Date.Time else
-                                if (input$select_station == "MEW") WDG_hourly$Date.Time })
+  #make a reactive expression to filter the data based on the date range input
+  filtered_data <- reactive({
+    req(input$date_range)
+    
+    #precipitation data, select precipitation station based on selected streamflow station
+    selected_data <- if (input$select_station %in% c("BYS", "MLL")) {BCC_hourly} else 
+                     if (input$select_station %in% c("CLD", "PRY", "WHT")) {DRW_hourly} else 
+                     if (input$select_station == "MEW") {WDG_hourly}
+    
+    #filter data by date range input
+    precipitation_data_filtered <- filter(selected_data, Date.Time >= input$date_range[1] & Date.Time <= input$date_range[2])
+    streamflow_data_filtered <- filter(streamflow_data, Date.Time >= input$date_range[1] & Date.Time <= input$date_range[2])
+    stage_data_filtered <- filter(stage_data, Date.Time >= input$date_range[1] & Date.Time <= input$date_range[2])
+    manual_streamflow_data_filtered <- filter(manual_streamflow_data, Date.Time >= input$date_range[1] & Date.Time <= input$date_range[2])
+    
+    #return filtered data
+    list(
+      discharge = streamflow_data_filtered, 
+      level = stage_data_filtered, 
+      manual_discharge = manual_streamflow_data_filtered,
+      precipitation = precipitation_data_filtered)
+    
+  })
   
-  precipitation_y <- reactive({ if (input$select_station %in% c("BYS", "MLL")) BCC_hourly$rain_in_BCC else
-                                if (input$select_station %in% c("CLD", "PRY", "WHT")) DRW_hourly$rain_in_DRW else
-                                if (input$select_station == "MEW") WDG_hourly$rain_in_WDG })
-  
-  #creating the plot
+  #--------------creating the plot-------------------------------
   output$graph <- renderPlotly({
     
     req(input$var)
@@ -266,8 +250,8 @@ server <- function(input,output,session){
       
       # Add points for manual discharge data
       p <- add_trace(p,
-                     x = ~base::get(manual_discharge())$Date.Time,
-                     y = ~base::get(manual_discharge())$Q.cfs,
+                     x = ~filtered_data()$manual_discharge$Date.Time,
+                     y = ~filtered_data()$manual_discharge$Q.cfs,
                      type = "scatter",
                      mode = "markers",
                      marker = list(color = "darkgreen"),
@@ -277,8 +261,8 @@ server <- function(input,output,session){
       
       # Add lines for discharge data
       p <- add_trace(p,
-                     x = ~base::get(discharge())$Date.Time,
-                     y = ~base::get(discharge())$Q.cfs,
+                     x = ~filtered_data()$discharge$Date.Time,
+                     y = ~filtered_data()$discharge$Q.cfs,
                      type = "scatter",
                      mode = "lines",
                      line = list(color = '#2fa819', width = 1, dash = 'solid'),
@@ -287,8 +271,8 @@ server <- function(input,output,session){
       
       # Add lines for level data
       p <- add_trace(p,
-                     x = ~base::get(level())$Date.Time,
-                     y = ~base::get(level())$level.in,
+                     x = ~filtered_data()$level$Date.Time,
+                     y = ~filtered_data()$level$level.in,
                      type = "scatter",
                      mode = "lines",
                      line = list(color = 'red', width = 1, dash = 'solid'),
@@ -297,8 +281,8 @@ server <- function(input,output,session){
     
     #add bars for precipitation
     p <- add_bars(p,
-                  x = precipitation_x(),
-                  y = precipitation_y(),
+                  x = filtered_data()$precipitation$Date.Time,
+                  y = filtered_data()$precipitation$rain_in,
                   yaxis = "y2",
                   marker = list(color = "blue", width = 1),
                   name = 'Precipitation')
@@ -374,27 +358,30 @@ server <- function(input,output,session){
       addLegend("topleft", pal=RdYlBu, values=stat_location$Site.Type, title="Site Type",opacity=1)
   })
   
-  #map of stations for first tab, same code as above-------------------------------------------------------------------------------------------------------------
-  
- 
-  RdYlBu <- colorFactor("RdYlBu",domain=stat_location$Site.Type)
+  #map of stations for first tab-------------------------------------------------------------------------------------------------------------
+  station <- reactive({paste0(input$select_station)})
+  selected_station_data <- stat_location[stat_location$CW3E.Code == ~get(station()), ]
+
+  RdYlBu2 <- colorFactor("RdYlBu",domain=selected_station_data$Site.Type)
   
   output$map2 <- renderLeaflet({
-    leaflet(stat_location) %>%
+    leaflet(selected_station_data) %>%
       addProviderTiles("Esri.WorldTopoMap") %>%                         
       setView(map, lng = -119.7871, lat = 36.7378, zoom = 6)  %>%
-      addCircleMarkers(lng=~stat_location$Longitude, lat=~stat_location$Latitude,
+      addCircleMarkers(lng=~selected_station_data$Longitude, lat=~selected_station_data$Latitude,
                        stroke = FALSE, fill=TRUE, fillOpacity=1,
-                       color = ~RdYlBu(stat_location$Site.Type),
-                       popup=paste(stat_location$Name, "<br>",
-                                   "CW3E Code:", stat_location$CW3E.Code, "<br>",
-                                   "Watershed:", stat_location$Watershed, "<br>",
-                                   "Elevation:", stat_location$Elevation..Approx..m.,"m", "<br>",
-                                   "(",stat_location$Latitude,stat_location$Longitude,")"
+                       color = ~RdYlBu2(selected_station_data$Site.Type),
+                       popup=paste(selected_station_data$Name, "<br>",
+                                   "CW3E Code:", selected_station_data$CW3E.Code, "<br>",
+                                   "Site Type:", selected_station_data$Site.Type, "<br",
+                                   "Watershed:", selected_station_data$Watershed, "<br>",
+                                   "Elevation:", selected_station_data$Elevation..Approx..m.,"m", "<br>",
+                                   "(",selected_station_data$Latitude,selected_station_data$Longitude,")"
                        )) %>%
-      addLegend("topleft", pal=RdYlBu, values=stat_location$Site.Type, title="Site Type",opacity=1)
+      addLegend("topleft", pal=RdYlBu2, values=selected_station_data$Site.Type, title="Site Type",opacity=1)
+    
   })
-  
+
   #data table under station map-----------------------------------------------------------------------------------------------------
   
   output$data_table <- DT::renderDataTable({DT::datatable(stat_location, rownames=FALSE,
