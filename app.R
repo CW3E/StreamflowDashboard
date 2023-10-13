@@ -16,7 +16,7 @@ library(htmlwidgets)
 #data loading and formatting--------------------------------------------------------------------------------------------------------------
 
 #set environment and retrieve config file, change "anahita" to your environment
-Sys.setenv(R_CONFIG_ACTIVE = "sarah")
+Sys.setenv(R_CONFIG_ACTIVE = "anahita")
 config <- config::get()                       
 setwd(config$root_dir)
 
@@ -58,35 +58,6 @@ for (site in sites) {
   #format stage data timestamps
   stage_data$Date.Time <- as.POSIXct(stage_data$Date.Time, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
   
-  #if the site is PRY, connect the stage data to the field camera photos
-  if (site == "PRY") {
-    #get hourly stage values
-    stage_hourly <- stage_data
-    #print(head(stage_hourly))
-    #add an hourly column
-    stage_hourly$Date.Time.Hour <- round_date(stage_hourly$Date.Time, unit = "hour") #rounds date to the nearest hour; will round up if midway through the hour
-    #print(head(stage_hourly))
-    #load in photo paths and times, and load in labels
-    PRY_photo_path <- read.csv(paste(config$photo_data_path, paste(site, "_path_date.csv", sep = ""),sep = ""), header = TRUE) #format makes it so that we can do this with new sites
-    #print(head(PRY_photo_path))
-    #get the date formatted for PST time zone (these photos at least were taken in PST)
-    PRY_photo_path$date <- ymd_hms(PRY_photo_path$date,tz = "America/Los_Angeles") #get time zone
-    #print(head(PRY_photo_path))
-    #round date to nearest hour and put in UTC timezone
-    PRY_photo_path$Date.Time.Hour <- round_date(with_tz(PRY_photo_path$date, tz = "GMT"), unit = "hour") #convert to GMT, hourly
-    #print(head(PRY_photo_path))
-    #make sure date is the same format as the stage data (likely could make these steps more concise)
-    PRY_photo_path$Date.Time.Hour <- as.POSIXct(PRY_photo_path$Date.Time.Hour, tz = "UTC", format = "%Y-%m-%d %H:%M:%S") #make into same format as stage_data dates
-    #print(head(PRY_photo_path))
-    #merge paths/times with stage_hourly
-    photo_discharge <- base::merge(stage_hourly, PRY_photo_path,by="Date.Time.Hour", all.y = TRUE) #LIKELY GET RID OF THE X columns (index) of each so that there isn't the "Warning:  2 failed to parse." warning
-    #print(head(photo_discharge))
-    #put data into a table so that it is easier to plot later
-    photo_table <- data.table(timestamp = as.POSIXct(photo_discharge$Date.Time), timehour = as.POSIXct(photo_discharge$Date.Time.Hour), type = "photo",location = photo_discharge$path, value = photo_discharge$level.in)
-    print(head(photo_table))
-  }
-  else {photo_table <- NULL}
-  
   #discharge data
   streamflow_data <- read.csv(paste(config$streamflow_data_path, paste(site, "/Processed/", site, "_LogLog_Q_GM.csv", sep = ""), sep = ""), header = TRUE)
   streamflow_data <- rename(streamflow_data, Q.cfs = paste(tolower(site), ".q3", sep = ""), Date.Time = paste(tolower(site), ".dt2", sep = ""))
@@ -101,7 +72,6 @@ for (site in sites) {
   manual_streamflow_data$Date.Time <- as.POSIXct(manual_streamflow_data$Date.Time, tz = "UTC", format = "%m/%d/%y %H:%M:%S")
   
   #assign the data frames to specific variables
-  assign(paste(site, "_Ph",sep = ""),photo_table)
   assign(paste(site, "_Le", sep = ""), stage_data)
   assign(paste(site, "_Q", sep = ""), streamflow_data)
   assign(paste(site, "_QM", sep = ""), manual_streamflow_data)
@@ -146,7 +116,7 @@ ui <- fluidPage(
                                         inputId = "select_station",     #user does not see this, need this to reference in server
                                         label = "Select Station:",      #user sees this
                                         choices = c("BYS","CLD","MEW","MLL","PRY","WHT"),       
-                                        selected = "PRY"),              #the station that shows up when dashboard first loads
+                                        selected = "CLD"),              #the station that shows up when dashboard first loads
                                       
                                       #creates option for user to select the variable 
                                       selectizeInput(
@@ -241,8 +211,7 @@ server <- function(input,output,session){
   #takes the station input and creates a function that references the data frame specific to that variable and station
   manual_discharge <- reactive({paste0(input$select_station,"_QM")})
   discharge <- reactive({paste0(input$select_station,"_Q")})           
-  level <- reactive({paste0(input$select_station,"_Le")})
-  photo <- reactive({paste0(input$select_station,"_Ph")}) 
+  level <- reactive({paste0(input$select_station,"_Le")}) 
   
   #make a reactive expression to filter the data based on the date range input
   filtered_data <- reactive({
@@ -258,21 +227,13 @@ server <- function(input,output,session){
     streamflow_data_filtered <- filter(streamflow_data, Date.Time >= input$date_range[1] & Date.Time <= input$date_range[2])
     stage_data_filtered <- filter(stage_data, Date.Time >= input$date_range[1] & Date.Time <= input$date_range[2])
     manual_streamflow_data_filtered <- filter(manual_streamflow_data, Date.Time >= input$date_range[1] & Date.Time <= input$date_range[2])
-    if (is.null(photo_table)){
-      photo_data_filtered <- NULL
-    } 
-    else {
-      photo_data_filtered <- filter(photo_table, timestamp >= input$date_range[1] & timestamp <= input$date_range[2])
-      print(photo_data_filtered)
-    }
     
     #return filtered data
     list(
       discharge = streamflow_data_filtered, 
       level = stage_data_filtered, 
       manual_discharge = manual_streamflow_data_filtered,
-      precipitation = precipitation_data_filtered,
-      photo = photo_data_filtered)
+      precipitation = precipitation_data_filtered)
     
   })
   
@@ -280,18 +241,8 @@ server <- function(input,output,session){
   output$graph <- renderPlotly({
     
     req(input$var)
-    #also plot the level for all points 
-    #PRY_labeled <- ggplot(data = filtered_data()$photo,aes(as.POSIXct(timestamp),value, text = timestamp,key = gsub("^.*\\/", "", location)))+
-      #geom_point(data = subset(filtered_data()$photo, type == "photo"), color = "black")
-      #geom_point(data = subset(PRY_all, type == "ML" ),aes(as.POSIXct(timestamp),value, color = as.factor(unit)))+
-      #scale_color_manual(values = c("High Water" = "#32E0E6", "Low Water" = "#3F16C6", "No Water" = "#F9BF5B"))+
-      #xlab("Year") + ylab("Stream Level (cm)")+labs(title = "PRY Barocorrected Level Labeled by Machine Learning Algorithm Using Field Camera Photos", color = "Machine Learning Labels")+
-      #theme_light()
-      #p <- ggplotly(PRY_labeled, tooltip = "text") %>% partial_bundle() 
     
-    #else {
     p <- plot_ly()
-    #}
     
     #if else statement is for changing plot based on what variable is selected; manual discharge and discharge will plot if discharge selected
     #precipitation plots regardless so it is outside of the if else statement
@@ -344,7 +295,6 @@ server <- function(input,output,session){
     
     #add field camera photos that pop up when hovering over graph, does not work but also doesn't prevent app from working
     #could an issue with this be that the photo's dates are not connecting to the dates on the graph?
-
     p %>% htmlwidgets::onRender("
     function(el, x) {
       // when hovering over an element, do something
@@ -352,9 +302,9 @@ server <- function(input,output,session){
         
         // extract tooltip text
         console.log(d)
-        point = d.points[0].pointIndex;
-        path = d.points[0].data.key[point]
-        console.log(point)
+        p = d.points[0].pointIndex;
+        path = d.points[0].data.key[p]
+        console.log(p)
         console.log(path)
         // image is stored locally
         image_location = 'https://raw.githubusercontent.com/seogle/PRY_thumbnails/main/PRY_all/' + path
@@ -381,7 +331,7 @@ server <- function(input,output,session){
     }
     ")
     
-    #return(p)
+    return(p)
     
   })
   

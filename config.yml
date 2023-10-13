@@ -6,7 +6,6 @@ default:
   manual_streamflow_data_path: "/Data/"
   stage_data_path: "/Data/a7jensen/"
   precip_data_path: "/Data/a7jensen"
-  photo_data_path: "Data/seogle/"
 
 
 anahita:
@@ -17,7 +16,6 @@ anahita:
   manual_streamflow_data_path: "CW3E_Streamflow_Archive/Data/"
   stage_data_path: "CW3E_Streamflow_Archive/Data/a7jensen/"
   precip_data_path: "CW3E_Streamflow_Archive/Data/a7jensen"
-  photo_data_path: "CW3E_Streamflow_Archive/Data/seogle/"
 
 garrett:
   root_dir: "C:/Users/Garrett/Documents/GitHub/CW3E.StreamflowDashBoard/data/"
@@ -27,7 +25,6 @@ garrett:
   manual_streamflow_data_path: "CW3E_Streamflow_Archive/Data/"
   stage_data_path: "CW3E_Streamflow_Archive/Data/a7jensen/"
   precip_data_path: "CW3E_Streamflow_Archive/Data/a7jensen"
-  photo_data_path: "CW3E_Streamflow_Archive/Data/seogle/"
 
 sarah:
   root_dir: "/Users/cloudy-guest/Documents/GitHub/StreamflowDashboard/data/"
@@ -36,6 +33,5 @@ sarah:
   streamflow_data_path: "CW3E_Streamflow_Archive/"
   manual_streamflow_data_path: "CW3E_Streamflow_Archive/Data/"
   stage_data_path: "CW3E_Streamflow_Archive/Data/a7jensen/"
-  precip_data_path: "CW3E_Streamflow_Archive/Data/a7jensen"
-  photo_data_path: "CW3E_Streamflow_Archive/Data/seogle/"  
+  precip_data_path: "CW3E_Streamflow_Archive/Data/a7jensen"  
 
