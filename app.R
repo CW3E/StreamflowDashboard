@@ -19,6 +19,7 @@ library(htmlwidgets)
 Sys.setenv(R_CONFIG_ACTIVE = "sarah")
 config <- config::get()                       
 setwd(config$root_dir)
+print(config$root_dir)
 
 #station location data for data table on 'station location' tab, has CW3E stations and their coordinates
 stat_location <- read.csv(config$stat_location)
@@ -67,6 +68,7 @@ for (site in sites) {
     stage_hourly$Date.Time.Hour <- round_date(stage_hourly$Date.Time, unit = "hour") #rounds date to the nearest hour; will round up if midway through the hour
     #print(head(stage_hourly))
     #load in photo paths and times, and load in labels
+    print(config$photo_data_path)
     PRY_photo_path <- read.csv(paste(config$photo_data_path, paste(site, "_path_date.csv", sep = ""),sep = ""), header = TRUE) #format makes it so that we can do this with new sites
     #print(head(PRY_photo_path))
     #get the date formatted for PST time zone (these photos at least were taken in PST)
@@ -381,7 +383,7 @@ server <- function(input,output,session){
     }
     ")
     
-    #return(p)
+    return(p)
     
   })
   
