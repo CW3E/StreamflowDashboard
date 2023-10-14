@@ -12,6 +12,7 @@ library(tidyverse)
 library(anytime)
 library(config)
 library(htmlwidgets)
+library(bslib)
 
 #data loading and formatting--------------------------------------------------------------------------------------------------------------
 
@@ -56,6 +57,8 @@ for (site in sites) {
   stage_data <- read.csv(paste(config$stage_data_path, paste(site,"_barocorrected_level.csv", sep = ""), sep = ""), header = TRUE)
 
   #format stage data timestamps
+  if (site == "BYS") {stage_data$Date.Time <- as.POSIXct(stage_data$Date.Time, tz = "UTC", format = "%m/%d/%Y %H:%M")} else
+  if (site == "CLD") {stage_data$Date.Time <- as.POSIXct(stage_data$Date.Time, tz = "UTC", format = "%m/%d/%Y %H:%M")} else
   stage_data$Date.Time <- as.POSIXct(stage_data$Date.Time, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
   
   #discharge data
@@ -63,7 +66,9 @@ for (site in sites) {
   streamflow_data <- rename(streamflow_data, Q.cfs = paste(tolower(site), ".q3", sep = ""), Date.Time = paste(tolower(site), ".dt2", sep = ""))
   
   #format discharge data timestamps
-  streamflow_data$Date.Time <- as.POSIXct(streamflow_data$Date.Time, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
+  if (site == "BYS") {streamflow_data$Date.Time <- as.POSIXct(streamflow_data$Date.Time, tz = "UTC", format = "%m/%d/%Y %H:%M")} else
+  if (site == "MLL") {streamflow_data$Date.Time <- as.POSIXct(streamflow_data$Date.Time, tz = "UTC", format = "%m/%d/%Y %H:%M")} else
+  {streamflow_data$Date.Time <- as.POSIXct(streamflow_data$Date.Time, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")}
   
   #manual discharge data
   manual_streamflow_data <- read_xlsx(paste(config$manual_streamflow_data_path, paste(site, "_Manual_Q_R.xlsx", sep = ""), sep = ""))
@@ -88,11 +93,13 @@ dischargeAx = list(side="left",title="Discharge (ft³/s)",showgrid=FALSE)
 
 #user interface--------------------------------------------------------------------------------------------------------------
 
+#create theme to match CW3E website
+#custom_theme <- bs_theme(bg = "#eaeaea", fg = "#1e6b8b", primary = "#1e6b8b", primary_light = "#1e6b8b",
+#                         font_family = "Times New Roman", font_size = 16, border_color = "#1e6b8b", border_width = "2px")
+
 ui <- fluidPage(
   
-  #set theme of app
-  theme = shinytheme("flatly"),
-  
+  theme = shinytheme("flatly"),    #set theme of app
   #make header panel with CW3E logo linked to CW3E website
   headerPanel(
     title=tags$a(href='https://cw3e.ucsd.edu/overview/',tags$img(src='logo.png', height = 80, width = 300), target="_blank"),
@@ -187,7 +194,7 @@ ui <- fluidPage(
                        h4(em("Precipitation:")),
                        p("CW3E’s surface meteorological stations measure precipitation, among other variables. Data is collected every two minutes."),
                        h3("Current Status:"),
-                       p("The app is currently being developed. Data is mostly raw and still being processed."),
+                       p("The app is currently being developed."),
                        br(),
                        h3("References:"),
                        p(a("USGS: How Streamflow is Measured",href="https://www.usgs.gov/special-topics/water-science-school/science/how-streamflow-measured")),
@@ -207,23 +214,40 @@ ui <- fluidPage(
 server <- function(input,output,session){
   
   #hydrograph--------------------------------------------------------------------------------------------------------------------
-
-  #takes the station input and creates a function that references the data frame specific to that variable and station
-  manual_discharge <- reactive({paste0(input$select_station,"_QM")})
-  discharge <- reactive({paste0(input$select_station,"_Q")})           
-  level <- reactive({paste0(input$select_station,"_Le")}) 
   
   #make a reactive expression to filter the data based on the date range input
   filtered_data <- reactive({
     req(input$date_range)
     
     #precipitation data, select precipitation station based on selected streamflow station
-    selected_data <- if (input$select_station %in% c("BYS", "MLL")) {BCC_hourly} else 
-                     if (input$select_station %in% c("CLD", "PRY", "WHT")) {DRW_hourly} else 
-                     if (input$select_station == "MEW") {WDG_hourly}
+    precipitation_data <- if (input$select_station %in% c("BYS", "MLL")){BCC_hourly} else 
+                          if (input$select_station %in% c("CLD", "PRY", "WHT")){DRW_hourly} else 
+                          if (input$select_station == "MEW") {WDG_hourly}
+
+    #this is the only way i was able to make date range input box work
+    streamflow_data <- if (input$select_station == "BYS"){BYS_Q} else
+                       if (input$select_station == "CLD"){CLD_Q} else
+                       if (input$select_station == "MEW"){MEW_Q} else
+                       if (input$select_station == "MLL"){MLL_Q} else
+                       if (input$select_station == "PRY"){PRY_Q} else
+                       if (input$select_station == "WHT"){WHT_Q}
     
-    #filter data by date range input
-    precipitation_data_filtered <- filter(selected_data, Date.Time >= input$date_range[1] & Date.Time <= input$date_range[2])
+    manual_streamflow_data <- if (input$select_station == "BYS"){BYS_QM} else
+                              if (input$select_station == "CLD"){CLD_QM} else
+                              if (input$select_station == "MEW"){MEW_QM} else
+                              if (input$select_station == "MLL"){MLL_QM} else
+                              if (input$select_station == "PRY"){PRY_QM} else
+                              if (input$select_station == "WHT"){WHT_QM}
+    
+    stage_data <- if (input$select_station == "BYS"){BYS_Le} else
+                  if (input$select_station == "CLD"){CLD_Le} else
+                  if (input$select_station == "MEW"){MEW_Le} else
+                  if (input$select_station == "MLL"){MLL_Le} else
+                  if (input$select_station == "PRY"){PRY_Le} else
+                  if (input$select_station == "WHT"){WHT_Le}
+    
+    #filter data by date range inputted by user
+    precipitation_data_filtered <- filter(precipitation_data, Date.Time >= input$date_range[1] & Date.Time <= input$date_range[2])
     streamflow_data_filtered <- filter(streamflow_data, Date.Time >= input$date_range[1] & Date.Time <= input$date_range[2])
     stage_data_filtered <- filter(stage_data, Date.Time >= input$date_range[1] & Date.Time <= input$date_range[2])
     manual_streamflow_data_filtered <- filter(manual_streamflow_data, Date.Time >= input$date_range[1] & Date.Time <= input$date_range[2])
@@ -234,7 +258,6 @@ server <- function(input,output,session){
       level = stage_data_filtered, 
       manual_discharge = manual_streamflow_data_filtered,
       precipitation = precipitation_data_filtered)
-    
   })
   
   #--------------creating the plot-------------------------------
@@ -359,27 +382,26 @@ server <- function(input,output,session){
   })
   
   #map of stations for first tab-------------------------------------------------------------------------------------------------------------
-  station <- reactive({paste0(input$select_station)})
-  selected_station_data <- stat_location[stat_location$CW3E.Code == ~get(station()), ]
-
-  RdYlBu2 <- colorFactor("RdYlBu",domain=selected_station_data$Site.Type)
+  #code for this map is different because it zooms to the selected station and only adds a marker for that one
   
-  output$map2 <- renderLeaflet({
-    leaflet(selected_station_data) %>%
-      addProviderTiles("Esri.WorldTopoMap") %>%                         
-      setView(map, lng = -119.7871, lat = 36.7378, zoom = 6)  %>%
-      addCircleMarkers(lng=~selected_station_data$Longitude, lat=~selected_station_data$Latitude,
-                       stroke = FALSE, fill=TRUE, fillOpacity=1,
-                       color = ~RdYlBu2(selected_station_data$Site.Type),
-                       popup=paste(selected_station_data$Name, "<br>",
-                                   "CW3E Code:", selected_station_data$CW3E.Code, "<br>",
-                                   "Site Type:", selected_station_data$Site.Type, "<br",
-                                   "Watershed:", selected_station_data$Watershed, "<br>",
-                                   "Elevation:", selected_station_data$Elevation..Approx..m.,"m", "<br>",
-                                   "(",selected_station_data$Latitude,selected_station_data$Longitude,")"
-                       )) %>%
-      addLegend("topleft", pal=RdYlBu2, values=selected_station_data$Site.Type, title="Site Type",opacity=1)
-    
+  filtered <- reactive({stat_location[stat_location$CW3E.Code == input$select_station,]})
+  
+  output$map2 <- renderLeaflet({leaflet(stat_location) %>% addProviderTiles("Esri.WorldTopoMap")})
+  
+  map_proxy <- leafletProxy("map2")
+  
+  observe({
+    fdata <- filtered()
+    map_proxy %>%
+      clearMarkers() %>%
+      addMarkers(lng = fdata$Longitude, lat = fdata$Latitude,
+                 popup=paste(fdata$Name, "<br>",
+                             "CW3E Code:", fdata$CW3E.Code, "<br>",
+                             "Watershed:", fdata$Watershed, "<br>",
+                             "Elevation:", fdata$Elevation..Approx..m.,"m", "<br>",
+                             "(",fdata$Latitude,fdata$Longitude,")" ,options = popupOptions(closeButton = FALSE))) %>%
+ 
+      flyTo(lng = fdata$Longitude, lat = fdata$Latitude, zoom = 10)
   })
 
   #data table under station map-----------------------------------------------------------------------------------------------------
@@ -391,10 +413,10 @@ server <- function(input,output,session){
                                                           list(lengthMenu = c(5,10,20,33), pageLength = 8))})
   
   #data table under hydrograph tab-----------------------------------------------------------------------------------------------------
-  
+
   output$data_table2 <- DT::renderDataTable({DT::datatable(stat_location2, rownames=FALSE,
                                                            colnames = c("Site Name","Watershed","CW3E Code"),
-                                                           list(lengthMenu = c(5,10,14), pageLength = 5))})
+                                                           list(lengthMenu = c(5,10,20,33), pageLength = 5))})
   
 }
 
