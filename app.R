@@ -49,7 +49,7 @@ for (station in stations) {
 
 #for loop for stage, discharge, manual discharge data; add new site to 'sites' below
 
-sites <- c("BYS","CLD","MEW","MLL","PRY","WHT")
+sites <- c("BYS","CLD","MEW","MLL","WHT","PRY")
 
 for (site in sites) {
   
@@ -308,9 +308,22 @@ server <- function(input,output,session){
                      line = list(color = '#2fa819', width = 1, dash = 'solid'),
                      name = "Discharge")
     } else {
-      
-      # Add lines for level data
       print("hi")
+      print(site) #testing to see what site it is, and it says it is PRY now that I changed the order to PRY being the last site in the list (used to just say WHT)
+      print(head(filtered_data()$photo$timestamp))
+      print(head(gsub("^.*\\/", "", filtered_data()$photo$location))) #this gives the image name
+      #add points for times of photos
+      if (site == "PRY") {
+        p <- add_trace(p,
+                       x = filtered_data()$photo$timestamp,
+                       y = filtered_data()$photo$value,
+                       type = "scatter",
+                       mode = "markers",
+                       marker = list(color = "black"),
+                       text = gsub("^.*\\/", "", filtered_data()$photo$location))
+      }
+      ;
+      # Add lines for level data
       p <- add_trace(p,
                      x = ~filtered_data()$level$Date.Time,
                      y = ~filtered_data()$level$level.in,
@@ -318,20 +331,8 @@ server <- function(input,output,session){
                      mode = "lines",
                      line = list(color = 'red', width = 1, dash = 'solid'),
                      name = "Level")
-      ;
-      #add points for times of photos
-      if (site == "PRY") {
-        p <- add_trace(p,
-                       x = ~filtered_data()$photo$timestamp,
-                       y = ~filtered_data()$photo$value,
-                       type = "scatter",
-                       mode = "markers",
-                       marker = list(color = "black"),
-                       name = gsub("^.*\\/", "", ~filtered_data()$photo$location))
-      }
-      
     }
-    
+      
     #add bars for precipitation
     p <- add_bars(p,
                   x = filtered_data()$precipitation$Date.Time,
@@ -357,7 +358,7 @@ server <- function(input,output,session){
         // extract tooltip text
         console.log(p)
         point = d.points[0].pointIndex;
-        path = d.points[0].data.name[point]
+        path = d.points[0].text[point] //data.text[point]
         console.log(point)
         console.log(path)
         // image is stored locally
