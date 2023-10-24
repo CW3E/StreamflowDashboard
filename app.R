@@ -58,9 +58,9 @@ for (site in sites) {
   stage_data <- read.csv(paste(config$stage_data_path, paste(site,"_barocorrected_level.csv", sep = ""), sep = ""), header = TRUE)
   
   #format stage data timestamps
-  if (site == "BYS") {stage_data$Date.Time <- as.POSIXct(stage_data$Date.Time, tz = "UTC", format = "%m/%d/%Y %H:%M")} else
+    if (site == "BYS") {stage_data$Date.Time <- as.POSIXct(stage_data$Date.Time, tz = "UTC", format = "%m/%d/%Y %H:%M")} else
     if (site == "CLD") {stage_data$Date.Time <- as.POSIXct(stage_data$Date.Time, tz = "UTC", format = "%m/%d/%Y %H:%M")} else
-      stage_data$Date.Time <- as.POSIXct(stage_data$Date.Time, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
+                       {stage_data$Date.Time <- as.POSIXct(stage_data$Date.Time, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")}
     
     #if the site is PRY, connect the stage data to the field camera photos
     if (site == "PRY") {
@@ -84,7 +84,7 @@ for (site in sites) {
       #print(head(PRY_photo_path))
       #merge paths/times with stage_hourly
       photo_discharge <- base::merge(stage_hourly, PRY_photo_path,by="Date.Time.Hour", all.y = TRUE) #LIKELY GET RID OF THE X columns (index) of each so that there isn't the "Warning:  2 failed to parse." warning
-      #print(head(photo_discharge))
+      print(head(photo_discharge))
       #put data into a table so that it is easier to plot later
       photo_table <- data.table(timestamp = as.POSIXct(photo_discharge$Date.Time), timehour = as.POSIXct(photo_discharge$Date.Time.Hour), type = "photo",location = photo_discharge$path, value = photo_discharge$level.in)
       #print(head(photo_table))
@@ -124,13 +124,14 @@ dischargeAx = list(side="left",title="Discharge (ft³/s)",showgrid=FALSE)
 
 #user interface--------------------------------------------------------------------------------------------------------------
 
-#create theme to match CW3E website
-#custom_theme <- bs_theme(bg = "#eaeaea", fg = "#1e6b8b", primary = "#1e6b8b", primary_light = "#1e6b8b",
-#                         font_family = "Times New Roman", font_size = 16, border_color = "#1e6b8b", border_width = "2px")
+#create theme to match CW3E we
+#custom_theme <- bs_theme(bg = "#eaeaea", fg = "#206c8c", primary = "#206c8c", primary_light = "#206c8c",
+#                        base_font = "Times New Roman", "font-size-base" = "1.0rem", border_color = "#1e6b8b")
 
 ui <- fluidPage(
   
   theme = shinytheme("flatly"),    #set theme of app
+  #theme = custom_theme,
   #make header panel with CW3E logo linked to CW3E website
   headerPanel(
     title=tags$a(href='https://cw3e.ucsd.edu/overview/',tags$img(src='logo.png', height = 80, width = 300), target="_blank"),
@@ -166,7 +167,6 @@ ui <- fluidPage(
                                       p(strong("Notes on Manual Discharge:")),
                                       p("To add or remove manual discharge points from the hydrograph, click on 
                                         'Manual Discharge' in the legend located in the top right corner of the hydrograph."),
-                                      
                                       p(strong("Notes on Precipitation:")),
                                       p("To add or remove precipitation from the hydrograph, click on 'Precipitation' in
                                          the legend located in the top right corner of the hydrograph."),
@@ -356,7 +356,6 @@ server <- function(input,output,session){
                        marker = list(color = "black",size=1),
                        text = gsub("^.*\\/", "", filtered_data()$photo$location))
       }
-
     }
     
     #add bars for precipitation
@@ -380,11 +379,11 @@ server <- function(input,output,session){
       el.on('plotly_hover', function(d) {
         
         // extract tooltip text
-        console.log(p)
+        // console.log(p)
         point = d.points[0].pointIndex;
         path = d.points[0].text[point] //data.text[point]
-        console.log(point)
-        console.log(path)
+        // console.log(point)
+        // console.log(path)
         // image is stored locally
         image_location = 'https://raw.githubusercontent.com/seogle/PRY_thumbnails/main/PRY_all/' + path
         console.log(image_location);
@@ -413,6 +412,7 @@ server <- function(input,output,session){
     return(p)
     
   })
+
   
   #map of stations for second tab-------------------------------------------------------------------------------------------------------------
   
@@ -456,7 +456,6 @@ server <- function(input,output,session){
                              "Watershed:", fdata$Watershed, "<br>",
                              "Elevation:", fdata$Elevation..Approx..m.,"m", "<br>",
                              "(",fdata$Latitude,fdata$Longitude,")" ,options = popupOptions(closeButton = FALSE))) %>%
-      
       flyTo(lng = fdata$Longitude, lat = fdata$Latitude, zoom = 10)
   })
   
@@ -473,7 +472,6 @@ server <- function(input,output,session){
   output$data_table2 <- DT::renderDataTable({DT::datatable(stat_location2, rownames=FALSE,
                                                            colnames = c("Site Name","Watershed","CW3E Code"),
                                                            list(lengthMenu = c(5,10,20,33), pageLength = 5))})
-  
 }
 
 #run app----------------------------------------------------------------------------------------------------------------------
