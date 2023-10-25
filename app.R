@@ -18,9 +18,11 @@ library(data.table)
 #data loading and formatting--------------------------------------------------------------------------------------------------------------
 
 #set environment and retrieve config file, change "anahita" to your environment
-Sys.setenv(R_CONFIG_ACTIVE = "anahita")
+Sys.setenv(R_CONFIG_ACTIVE = "sarah")
 config <- config::get()                       
 setwd(config$root_dir)
+
+
 
 #station location data for data table on 'station location' tab, has CW3E stations and their coordinates
 stat_location <- read.csv(config$stat_location)
@@ -371,17 +373,14 @@ server <- function(input,output,session){
                 xaxis = list(title = "Time (15 minute intervals)"),
                 yaxis = if (input$var == "Discharge" | input$var == "Manual Discharge") {dischargeAx} else {levelAx},
                 yaxis2 = rainAx)
-    
-    #add trail cam photos
-    p %>% htmlwidgets::onRender("
-    function(el, x) {
+    p <- p %>% onRender("function(el, x) {
       // when hovering over an element, do something
       el.on('plotly_hover', function(d) {
-        
+        console.log('Hello, world')
         // extract tooltip text
         // console.log(p)
-        point = d.points[0].pointIndex;
-        path = d.points[0].text[point] //data.text[point]
+        p = d.points[0].pointIndex;
+        path = d.points[0].data.text[p]
         // console.log(point)
         // console.log(path)
         // image is stored locally
@@ -408,6 +407,7 @@ server <- function(input,output,session){
       })
     }
     ")
+    
     
     return(p)
     
