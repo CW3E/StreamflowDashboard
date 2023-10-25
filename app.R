@@ -357,8 +357,9 @@ server <- function(input,output,session){
         
         // extract tooltip text
         console.log(p)
-        point = d.points[0].pointIndex;
-        path = d.points[0].text[point] //data.text[point]
+        //point = d.points[0].pointIndex;
+        //path = d.points[0].text[point] //data.text[point]
+        path = d.points[0].data.text;
         console.log(point)
         console.log(path)
         // image is stored locally
