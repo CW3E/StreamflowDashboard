@@ -17,21 +17,14 @@ library(data.table)
 
 #data loading and formatting--------------------------------------------------------------------------------------------------------------
 
-#set environment and retrieve config file, change "anahita" to your environment
-Sys.setenv(R_CONFIG_ACTIVE = "sarah")
+#set environment and retrieve config file, change "anahita" to your environment (see config file in GitHub for clarity)
+Sys.setenv(R_CONFIG_ACTIVE = "anahita")
 config <- config::get()                       
 setwd(config$root_dir)
 
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 624e4f68e3c05beabc6559ed428c546d234ea707
 #station location data for data table on 'station location' tab, has CW3E stations and their coordinates
 stat_location <- read.csv(config$stat_location)
-stat_location$Site.Type <- gsub("Smoil", "SMOIL", stat_location$Site.Type)
-#currently only data from stream, precip met, and smoil stations is being used in dashboard so only kept those
-stat_location <- stat_location[is.element(stat_location$Site.Type, c("Stream","Precip Met","SMOIL")),]
 #station location data for data table on 'hydrograph' tab, only has name/watershed/site.type
 stat_location2 <- read.csv(config$stat_location2)
 
@@ -64,8 +57,8 @@ for (site in sites) {
   
   #format stage data timestamps
   if (site == "BYS") {stage_data$Date.Time <- as.POSIXct(stage_data$Date.Time, tz = "UTC", format = "%m/%d/%Y %H:%M")} else
-  if (site == "CLD") {stage_data$Date.Time <- as.POSIXct(stage_data$Date.Time, tz = "UTC", format = "%m/%d/%Y %H:%M")} else
-                     {stage_data$Date.Time <- as.POSIXct(stage_data$Date.Time, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")}
+    if (site == "CLD") {stage_data$Date.Time <- as.POSIXct(stage_data$Date.Time, tz = "UTC", format = "%m/%d/%Y %H:%M")} else
+    {stage_data$Date.Time <- as.POSIXct(stage_data$Date.Time, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")}
   
   #if the site is PRY, connect the stage data to the field camera photos
   if (site == "PRY") {
@@ -94,8 +87,8 @@ for (site in sites) {
   
   #format discharge data timestamps
   if (site == "BYS") {streamflow_data$Date.Time <- as.POSIXct(streamflow_data$Date.Time, tz = "UTC", format = "%m/%d/%Y %H:%M")} else
-  if (site == "MLL") {streamflow_data$Date.Time <- as.POSIXct(streamflow_data$Date.Time, tz = "UTC", format = "%m/%d/%Y %H:%M")} else
-                     {streamflow_data$Date.Time <- as.POSIXct(streamflow_data$Date.Time, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")}
+    if (site == "MLL") {streamflow_data$Date.Time <- as.POSIXct(streamflow_data$Date.Time, tz = "UTC", format = "%m/%d/%Y %H:%M")} else
+    {streamflow_data$Date.Time <- as.POSIXct(streamflow_data$Date.Time, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")}
   
   #manual discharge data
   manual_streamflow_data <- read_xlsx(paste(config$manual_streamflow_data_path, paste(site, "_Manual_Q_R.xlsx", sep = ""), sep = ""))
@@ -208,12 +201,12 @@ ui <- fluidPage(
                                         label = "Select Station:",      
                                         choices = c("BYS","CLD","MEW","MLL","PRY","WHT","UDC","LDM","SYR"),       
                                         selected = "CLD"),              
-                                     ),
+                         ),
                          mainPanel(position = "right",
                                    plotlyOutput("ratingcurve_plot")
-                                   )
+                         )
                        )),
-                         
+              
               
               #third tab with map and data table
               tabPanel("Location Map",
@@ -418,7 +411,6 @@ server <- function(input,output,session){
     }
     ")
     
-    
     return(p)
     
   })
@@ -452,7 +444,7 @@ server <- function(input,output,session){
     p <- layout(p,
                 xaxis = list(title = "Stage (ft)"),
                 yaxis = list(title = "Discharge (cfs)")
-                )
+    )
     
     return(p)
     
