@@ -7,6 +7,7 @@ default:
   stage_data_path: "/Data/a7jensen/"
   precip_data_path: "/Data/a7jensen"
   photo_data_path: "Data/a7jensen/"
+  ratingcurve_data_path: "/UDC/Processed/"
 
 
 anahita:
@@ -18,7 +19,8 @@ anahita:
   stage_data_path: "CW3E_Streamflow_Archive/Data/a7jensen/"
   precip_data_path: "CW3E_Streamflow_Archive/Data/a7jensen"
   photo_data_path: "CW3E_Streamflow_Archive/Data/a7jensen/"
-
+  ratingcurve_data_path: "/UDC/Processed/"
+  
 garrett:
   root_dir: "C:/Users/Garrett/Documents/GitHub/CW3E.StreamflowDashBoard/data/"
   stat_location: "CW3E_Streamflow_Archive/Data/a7jensen/CW3E_Stations_all.csv"
