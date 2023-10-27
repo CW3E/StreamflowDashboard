@@ -18,11 +18,15 @@ library(data.table)
 #data loading and formatting--------------------------------------------------------------------------------------------------------------
 
 #set environment and retrieve config file, change "anahita" to your environment
-Sys.setenv(R_CONFIG_ACTIVE = "anahita")
+Sys.setenv(R_CONFIG_ACTIVE = "sarah")
 config <- config::get()                       
 setwd(config$root_dir)
 
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 624e4f68e3c05beabc6559ed428c546d234ea707
 #station location data for data table on 'station location' tab, has CW3E stations and their coordinates
 stat_location <- read.csv(config$stat_location)
 stat_location$Site.Type <- gsub("Smoil", "SMOIL", stat_location$Site.Type)
@@ -413,6 +417,7 @@ server <- function(input,output,session){
       })
     }
     ")
+    
     
     return(p)
     
