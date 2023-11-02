@@ -19,7 +19,7 @@ anahita:
   stage_data_path: "CW3E_Streamflow_Archive/Data/a7jensen/"
   precip_data_path: "CW3E_Streamflow_Archive/Data/a7jensen"
   photo_data_path: "CW3E_Streamflow_Archive/Data/a7jensen/"
-  ratingcurve_data_path: "/UDC/Processed/"
+  ratingcurve_data_path: "CW3E_Streamflow_Archive/UDC/Processed/"
   
 garrett:
   root_dir: "C:/Users/Garrett/Documents/GitHub/CW3E.StreamflowDashBoard/data/"
@@ -30,6 +30,7 @@ garrett:
   stage_data_path: "CW3E_Streamflow_Archive/Data/a7jensen/"
   precip_data_path: "CW3E_Streamflow_Archive/Data/a7jensen"
   photo_data_path: "CW3E_Streamflow_Archive/Data/a7jensen/"
+  ratingcurve_data_path: "CW3E_Streamflow_Archive/UDC/Processed/"
 
 sarah:
   root_dir: "/Users/cloudy-guest/Documents/GitHub/StreamflowDashboard/data/"
@@ -40,4 +41,5 @@ sarah:
   stage_data_path: "CW3E_Streamflow_Archive/Data/a7jensen/"
   precip_data_path: "CW3E_Streamflow_Archive/Data/a7jensen"  
   photo_data_path: "CW3E_Streamflow_Archive/Data/a7jensen/"
+  ratingcurve_data_path: "CW3E_Streamflow_Archive/UDC/Processed/"
 
