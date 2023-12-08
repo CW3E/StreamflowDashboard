@@ -45,3 +45,8 @@ other attached packages:
  [8] tidyr_1.3.0       tibble_3.2.1      tidyverse_2.0.0   DT_0.28           leaflet_2.1.2     shinythemes_1.2.0 readxl_1.4.3     
 [15] plotly_4.10.2     dplyr_1.1.1       ggplot2_3.4.2     shiny_1.7.4.1  
 
+# Container build
+1. git clone https://github.com/CW3E/StreamflowDashboard.git
+1. cd StreamflowDashboard
+1. singularity build StreamflowDashboard_$(date -I).sif Singularity
+1. singularity run -e StreamflowDashboard_$(date -I).sif
