@@ -11,14 +11,13 @@ default:
 
 
 anahita:
-  root_dir: "C:/Users/anahi/OneDrive/Documents/GitHub/CW3E.StreamflowDashBoard/data/"
-  stat_location: "CW3E_Streamflow_Archive/Data/a7jensen/CW3E_Stations_all.csv"
-  stat_location2: "CW3E_Streamflow_Archive/Data/a7jensen/station_location2.csv"
-  streamflow_data_path: "CW3E_Streamflow_Archive/"
-  manual_streamflow_data_path: "CW3E_Streamflow_Archive/Data/"
-  stage_data_path: "CW3E_Streamflow_Archive/Data/a7jensen/"
-  precip_data_path: "CW3E_Streamflow_Archive/Data/a7jensen"
-  photo_data_path: "CW3E_Streamflow_Archive/Data/a7jensen/"
+  root_dir: "//Skyriver.ucsd.edu/CW3E_data/"
+  stat_location: "CW3E_Streamflow_Archive/Data_old/a7jensen/CW3E_Stations_all.csv"
+  stat_location2: "CW3E_Streamflow_Archive/Data_old/a7jensen/station_location2.csv"
+  discharge_stage_path: "CW3E_Streamflow_Archive/"
+  manual_discharge_path: "CW3E_Streamflow_Archive/"
+  precip_data_path: "CW3E_Streamflow_Archive/"
+  photo_data_path: "CW3E_Streamflow_Archive/"
   ratingcurve_data_path: "CW3E_Streamflow_Archive/UDC/Processed/"
   
 garrett:
