@@ -1,10 +1,10 @@
 default:
-  root_dir: "/opt/StreamflowDashboard/data/CW3E_Streamflow_Archive/"
-  stat_location: "Data/a7jensen/CW3E_Stations_all.csv"
-  stat_location2: "Data/a7jensen/station_location2.csv"
-  streamflow_data_path: ""
-  manual_streamflow_data_path: "Data/"
-  stage_data_path: "Data/a7jensen/"
-  precip_data_path: "Data/a7jensen/"
-  photo_data_path: "Data/a7jensen/"
-  ratingcurve_data_path: "UDC/Processed/"
+  root_dir: '/opt/StreamflowDashboard/data/CW3E_Streamflow_Archive'
+  stat_location: !expr file.path(root_dir, 'scripts/StreamflowDashboard/reference_files/CW3E_Stations_all.csv')
+  stat_location2: !expr file.path(root_dir, 'scripts/StreamflowDashboard/reference_files/station_location2.csv')
+  streamflow_data_path: !expr file.path(root_dir, '')
+  manual_streamflow_data_path: !expr file.path(root_dir, 'Data/')
+  stage_data_path: !expr file.path(root_dir, 'Data/a7jensen/')
+  precip_data_path: !expr file.path(root_dir, 'scripts/StreamflowDashboard/reference_files/precip15min/')
+  photo_data_path: !expr file.path(root_dir, 'Data/a7jensen/')
+  ratingcurve_data_path: !expr file.path(root_dir, 'UDC/Processed/')

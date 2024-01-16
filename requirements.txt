@@ -161,7 +161,7 @@ https://conda.anaconda.org/r/linux-64/r-askpass-1.1-r42h76d94ec_0.tar.bz2
 https://conda.anaconda.org/r/linux-64/r-bit64-4.0.5-r42h76d94ec_0.tar.bz2
 https://conda.anaconda.org/r/linux-64/r-cachem-1.0.6-r42h76d94ec_0.tar.bz2
 https://conda.anaconda.org/r/linux-64/r-cli-3.3.0-r42h884c59f_0.tar.bz2
-https://conda.anaconda.org/r/noarch/r-config-0.3.1-r42h6115d3f_0.tar.bz2
+http://repo.continuum.io/pkgs/r/noarch/r-config-0.3.2-r43h6115d3f_0.tar.bz2
 https://conda.anaconda.org/r/linux-64/r-ellipsis-0.3.2-r42h76d94ec_0.tar.bz2
 https://conda.anaconda.org/r/noarch/r-gridextra-2.3-r42h6115d3f_0.tar.bz2
 https://conda.anaconda.org/r/noarch/r-highr-0.9-r42h6115d3f_0.tar.bz2
