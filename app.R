@@ -15,96 +15,122 @@ library(htmlwidgets)
 library(bslib)
 library(data.table)
 
-#data loading and formatting--------------------------------------------------------------------------------------------------------------
+#data loading and formatting----------------------------------------------------------------------------------------------------------------------------------------------------
 
 #set environment and retrieve config file, change "anahita" to your environment (see config file in GitHub for clarity)
 Sys.setenv(R_CONFIG_ACTIVE = "anahita")
 config <- config::get()                       
 setwd(config$root_dir)
 
-
 #station location data for data table on 'station location' tab, has CW3E stations and their coordinates
 stat_location <- read.csv(config$stat_location)
 #station location data for data table on 'hydrograph' tab, only has name/watershed/site.type
 stat_location2 <- read.csv(config$stat_location2)
 
+#precipitation data loading and processing------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#for loop for precipitation data, add new station to 'stations' below (will work as long as data is formatted the exact same, see data in GitHub to view formatting style)
-stations <- c("BCC","BVS","DRW","WDG")
+#read in precipitation data
+BVS <- read.csv("//Skyriver.ucsd.edu/CW3E_data/CW3E_SurfaceMet_Archive/BVS/BrownsValleySchool_TwoMin.dat",skip=3,header=TRUE,sep = ",",fill=TRUE)
+BCC <- read.csv("//Skyriver.ucsd.edu/CW3E_data/CW3E_SurfaceMet_Archive/BCC/BoyesCreekCanyon_TwoMinWS.dat",skip=3,header=TRUE,sep = ",",fill=TRUE)
+DRW <- read.csv("//Skyriver.ucsd.edu/CW3E_data/CW3E_SurfaceMet_Archive/DRW/Deerwood_TwoMinWS.dat",skip=3,header=TRUE,sep = ",",fill=TRUE)
+WDG <- read.csv("//Skyriver.ucsd.edu/CW3E_data/CW3E_SurfaceMet_Archive/WDG/WindyGap_TwoMinWS.dat",skip=3,header=TRUE,sep = ",",fill=TRUE)
 
-for (station in stations) {
-  
-  precip_data <- read.csv(paste(config$precip_data_path, paste("/",station,"_precip15min.csv", sep = ""), sep = ""), header = TRUE)
-  if (station == "DRW") {precip_data <- precip_data[-(1:2502),]}        #DRW had very obviously incorrect values so I got rid of them, not sure why
-  
-  #format timestamps
-  precip_data$Date.Time <- as.POSIXct(precip_data$Date.Time, tz = "UTC", format =  "%m/%d/%Y %H:%M")
-  
-  #make data hourly instead of 15 minutes
-  precip_data_hourly <- precip_data %>%  group_by(Date.Time = cut(Date.Time, "60 mins")) %>%  summarise("rain_in" = sum(!!sym("rain_in")))
-  precip_data_hourly$Date.Time <- as.POSIXct(precip_data_hourly$Date.Time, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
-  assign(paste(station, "_hourly", sep = ""), precip_data_hourly)
-}
+#keep only precipitation
+BVS <- BVS %>%  select(X, Tot)
+BCC <- BCC %>%  select(X, Tot)
+DRW <- DRW %>%  select(X, Tot)
+WDG <- WDG %>%  select(X, Tot)
 
+#convert precipitation units from mm to inches
+BVS <- BVS %>% mutate(Tot = Tot * 0.0393701)
+BCC <- BCC %>% mutate(Tot = Tot * 0.0393701)
+DRW <- DRW %>% mutate(Tot = Tot * 0.0393701)
+WDG <- WDG %>% mutate(Tot = Tot * 0.0393701)
 
-#for loop for stage, discharge, manual discharge data; add new site to 'sites' below
-sites <- c("BYS","CLD","MEW","MLL","WHT","PRY")
+#change timestamps to UTC
+BVS$X <- as.POSIXct(BVS$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
+BCC$X <- as.POSIXct(BCC$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
+DRW$X <- as.POSIXct(DRW$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
+WDG$X <- as.POSIXct(WDG$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
+
+#change data to hourly
+BVS_hourly <- BVS %>%  group_by(X = cut(X, "60 mins")) %>%  summarise("Tot" = sum(!!sym("Tot")))
+BCC_hourly <- BCC %>%  group_by(X = cut(X, "60 mins")) %>%  summarise("Tot" = sum(!!sym("Tot")))
+DRW_hourly <- DRW %>%  group_by(X = cut(X, "60 mins")) %>%  summarise("Tot" = sum(!!sym("Tot")))
+WDG_hourly <- WDG %>%  group_by(X = cut(X, "60 mins")) %>%  summarise("Tot" = sum(!!sym("Tot")))
+
+#change timestamps to UTC (have to do this step again b/c changing data to hourly affects format)
+BVS_hourly$X <- as.POSIXct(BVS_hourly$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
+BCC_hourly$X <- as.POSIXct(BCC_hourly$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
+DRW_hourly$X <- as.POSIXct(DRW_hourly$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
+WDG_hourly$X <- as.POSIXct(WDG_hourly$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
+
+#discharge and stage and photo data loading and processing-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+sites <- c("BYS","CLD","LDM","MEW_DS","MEW_US","MLL","PRY","UDC","WHT") #took out SYR since data not updated
 
 for (site in sites) {
   
-  #stage data
-  stage_data <- read.csv(paste(config$stage_data_path, paste(site,"_barocorrected_level.csv", sep = ""), sep = ""), header = TRUE)
+  #discharge and stage data
+  discharge_stage_data <- read.csv(paste(config$discharge_stage_path, site,"/Processed/ALL.",site,".Level.Discharge.csv",sep = ""), header = TRUE)
+  #format timestamps 
+  discharge_stage_data$timestamp_UTC <- as.POSIXct(discharge_stage_data$timestamp_UTC, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
+  #change stage units from feet to inches
+  #discharge_stage_data$Level.ft.corrected <- 12*(discharge_stage_data$Level.ft.corrected)
   
-  #format stage data timestamps
-  if (site == "BYS") {stage_data$Date.Time <- as.POSIXct(stage_data$Date.Time, tz = "UTC", format = "%m/%d/%Y %H:%M")} else
-    if (site == "CLD") {stage_data$Date.Time <- as.POSIXct(stage_data$Date.Time, tz = "UTC", format = "%m/%d/%Y %H:%M")} else
-    {stage_data$Date.Time <- as.POSIXct(stage_data$Date.Time, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")}
-  
-  #if the site is PRY, connect the stage data to the field camera photos
-  if (site == "PRY") {
-    #get hourly stage values
-    stage_hourly <- stage_data
-    #add an hourly column
-    stage_hourly$Date.Time.Hour <- round_date(stage_hourly$Date.Time, unit = "hour") #rounds date to the nearest hour; will round up if midway through the hour
-    #load in photo paths and times, and load in labels
-    PRY_photo_path <- read.csv(paste(config$photo_data_path, paste(site, "_path_date.csv", sep = ""),sep = ""), header = TRUE) #format makes it so that we can do this with new sites
-    #get the date formatted for PST time zone (these photos at least were taken in PST)
-    PRY_photo_path$date <- ymd_hms(PRY_photo_path$date,tz = "America/Los_Angeles") #get time zone
-    #round date to nearest hour and put in UTC timezone
-    PRY_photo_path$Date.Time.Hour <- round_date(with_tz(PRY_photo_path$date, tz = "GMT"), unit = "hour") #convert to GMT, hourly
-    #make sure date is the same format as the stage data (likely could make these steps more concise)
-    PRY_photo_path$Date.Time.Hour <- as.POSIXct(PRY_photo_path$Date.Time.Hour, tz = "UTC", format = "%Y-%m-%d %H:%M:%S") #make into same format as stage_data dates
-    #merge paths/times with stage_hourly
-    photo_discharge <- base::merge(stage_hourly, PRY_photo_path,by="Date.Time.Hour", all.y = TRUE) #LIKELY GET RID OF THE X columns (index) of each so that there isn't the "Warning:  2 failed to parse." warning
-    #put data into a table so that it is easier to plot later
-    photo_table <- data.table(timestamp = as.POSIXct(photo_discharge$Date.Time), timehour = as.POSIXct(photo_discharge$Date.Time.Hour), type = "photo",location = photo_discharge$path, value = photo_discharge$level.in)
+  # Replace NULL values with the date from the next row and time set to "00:00:00"
+  for (i in 2:(nrow(discharge_stage_data) - 1)) {
+    if (is.na(discharge_stage_data$timestamp_UTC[i])) {
+      next_row_timestamp <- discharge_stage_data$timestamp_UTC[i + 1]
+      discharge_stage_data$timestamp_UTC[i] <- as.POSIXct(paste0(format(next_row_timestamp, "%Y-%m-%d"), " 00:00:00"), tz = "UTC")
+    }
   }
-  else {photo_table <- NULL}
   
-  #discharge data
-  streamflow_data <- read.csv(paste(config$streamflow_data_path, paste(site, "/Processed/", site, "_LogLog_Q_GM.csv", sep = ""), sep = ""), header = TRUE)
-  streamflow_data <- rename(streamflow_data, Q.cfs = paste(tolower(site), ".q3", sep = ""), Date.Time = paste(tolower(site), ".dt2", sep = ""))
+  #manual discharge data  #for MEW, DS and US sites have different rating curve discharges, but same manual discharge
+  if (site == "MEW_DS" | site == "MEW_US") {manual_discharge_data <- read.csv(paste(config$manual_discharge_path, "MEW/Manual_Discharge/MEW_manual_q_final.csv", sep = ""), header = TRUE)}
+  else {manual_discharge_data <- read.csv(paste(config$manual_discharge_path, site,"/Manual_Discharge/", site, "_manual_q_final.csv", sep = ""), header = TRUE)}
+  #format timestamps
+  if (site=="CLD"|site=="LDM"|site=="PRY"|site=="UDC") {manual_discharge_data$date.time <- as.POSIXct(manual_discharge_data$date.time, tz = "UTC", format = "%m/%d/%Y %H:%M")}
+  else {manual_discharge_data$date.time <- as.POSIXct(manual_discharge_data$date.time, tz = "UTC", format = "%Y/%m/%d %H:%M:%S")}
   
-  #format discharge data timestamps
-  if (site == "BYS") {streamflow_data$Date.Time <- as.POSIXct(streamflow_data$Date.Time, tz = "UTC", format = "%m/%d/%Y %H:%M")} else
-    if (site == "MLL") {streamflow_data$Date.Time <- as.POSIXct(streamflow_data$Date.Time, tz = "UTC", format = "%m/%d/%Y %H:%M")} else
-    {streamflow_data$Date.Time <- as.POSIXct(streamflow_data$Date.Time, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")}
-  
-  #manual discharge data
-  manual_streamflow_data <- read_xlsx(paste(config$manual_streamflow_data_path, paste(site, "_Manual_Q_R.xlsx", sep = ""), sep = ""))
-  
-  #format manual discharge data timestamps
-  manual_streamflow_data$Date.Time <- as.POSIXct(manual_streamflow_data$Date.Time, tz = "UTC", format = "%m/%d/%y %H:%M:%S")
+  # #if the site is PRY, connect the stage data to the field camera photos
+  #may run into issue, i think old level was in inches and new level is in feet 
+  # if (site == "PRY") {
+  #   #get hourly stage values
+  #   stage_hourly <- discharge_stage_data
+  #   #add an hourly column
+  #   stage_hourly$Date.Time.Hour <- round_date(stage_hourly$timestamp_UTC, unit = "hour") #rounds date to the nearest hour; will round up if midway through the hour
+  #   #load in photo paths and times, and load in labels
+  #   PRY_photo_path <- read.csv(paste(config$photo_data_path, paste(site, "/Trail Cam/Thumbnails/", sep = ""),sep = ""), header = TRUE) #format makes it so that we can do this with new sites
+  #   #get the date formatted for PST time zone (these photos at least were taken in PST)
+  #   PRY_photo_path$date <- ymd_hms(PRY_photo_path$date,tz = "America/Los_Angeles") #get time zone
+  #   #round date to nearest hour and put in UTC timezone
+  #   PRY_photo_path$Date.Time.Hour <- round_date(with_tz(PRY_photo_path$date, tz = "GMT"), unit = "hour") #convert to GMT, hourly
+  #   #make sure date is the same format as the stage data (likely could make these steps more concise)
+  #   PRY_photo_path$Date.Time.Hour <- as.POSIXct(PRY_photo_path$Date.Time.Hour, tz = "UTC", format = "%Y-%m-%d %H:%M:%S") #make into same format as stage_data dates
+  #   #merge paths/times with stage_hourly
+  #   photo_discharge <- base::merge(stage_hourly, PRY_photo_path,by="Date.Time.Hour", all.y = TRUE) #LIKELY GET RID OF THE X columns (index) of each so that there isn't the "Warning:  2 failed to parse." warning
+  #   #put data into a table so that it is easier to plot later
+  #   photo_table <- data.table(timestamp = as.POSIXct(photo_discharge$Date.Time), timehour = as.POSIXct(photo_discharge$Date.Time.Hour), type = "photo",location = photo_discharge$path, value = photo_discharge$level_corrected_ft)
+  # }
+  # else {photo_table <- NULL}
   
   #assign the data frames to specific variables
-  assign(paste(site, "_Ph",sep = ""),photo_table)
-  assign(paste(site, "_Le", sep = ""), stage_data)
-  assign(paste(site, "_Q", sep = ""), streamflow_data)
-  assign(paste(site, "_QM", sep = ""), manual_streamflow_data)
+  assign(paste(site, "_D_S", sep = ""), discharge_stage_data)
+  assign(paste(site, "_QM", sep = ""), manual_discharge_data)
+  #assign(paste(site, "_Ph", sep = ""), photo_table)
 }
 
+#rating curve data, just using UDC for now to test out rating curve
+stream_sites <- ("UDC")
+for (stream_site in stream_sites) {
+  ratingcurve_data <- read.csv(paste(config$ratingcurve_data_path, paste("UDC_Rating_Curve.csv", sep = ""), sep = ""), header = TRUE)
+  assign(paste(stream_site, "_RC", sep = ""), ratingcurve_data)
+}
+ratingcurve_data <- ratingcurve_data[-c(1,2),]
+
 #set right y axis for precipitation
-rainAx = list(overlaying="y",side="right",title="Precipitation (inches)",range=c(1,0),showgrid=FALSE)
+rainAx = list(overlaying="y",side="right",title="Precipitation (inches)",range=c(2,0),showgrid=FALSE)
 
 #set left y axis for level
 levelAx = list(side="left",title="Level (inches)",showgrid=FALSE)
@@ -115,18 +141,17 @@ dischargeAx = list(side="left",title="Discharge (ft³/s)",showgrid=FALSE)
 #user interface--------------------------------------------------------------------------------------------------------------
 
 #create theme to match CW3E website
-#custom_theme <- bs_theme(bg = "#eaeaea", fg = "#206c8c", primary = "#206c8c", primary_light = "#206c8c",
-#                         base_font = "Times New Roman", "font-size-base" = "1.0rem", border_color = "#1e6b8b")
+#custom_theme <- bs_theme(bg="#eaeaea", fg="#206c8c", primary="#206c8c", primary_light="#206c8c",base_font="Times New Roman", "font-size-base"="1.0rem", border_color="#1e6b8b")
 
 ui <- fluidPage(
   
   theme = shinytheme("flatly"),    #set theme of app
-  #theme = custom_theme,
+
   #make header panel with CW3E logo linked to CW3E website
-  headerPanel(
-    title=tags$a(href='https://cw3e.ucsd.edu/overview/',tags$img(src='logo.png', height = 80, width = 300), target="_blank"),
-    tags$head(tags$link(rel = "icon", type = "image/png", href = "logo.png"))),
+  headerPanel(title=tags$a(href='https://cw3e.ucsd.edu/overview/',tags$img(src='logo.png', height = 80, width = 300), target="_blank"),
+              tags$head(tags$link(rel = "icon", type = "image/png", href = "logo.png"))),
   
+  #title of app, 'strong' makes text bold
   titlePanel(strong("Streamflow Dashboard")),
   
   #creating 3 tabs for dashboard
@@ -137,15 +162,15 @@ ui <- fluidPage(
                        
                        sidebarLayout(   
                          
-                         #this is for the user inputs on the left side of the dashboard
+                         #creates the user inputs on the left side of the hydrograph
                          sidebarPanel(position = "left",
                                       
                                       #creates option for user to select the station
                                       selectizeInput(
-                                        inputId = "select_station",     #user does not see this, need this to reference in server
+                                        inputId = "select_station",     #user does not see this, need to reference this in server
                                         label = "Select Station:",      #user sees this
-                                        choices = c("BYS","CLD","MEW","MLL","PRY","WHT"),       
-                                        selected = "CLD"),              #the station that shows up when dashboard first loads
+                                        choices = c("BYS","CLD","LDM","MEW_DS","MEW_US","MLL","PRY","SYR","WHT","UDC"),       
+                                        selected = "BYS"),              #the station that shows up when dashboard first loads
                                       
                                       #creates option for user to select the variable 
                                       selectizeInput(
@@ -167,19 +192,20 @@ ui <- fluidPage(
                                       p("CLD(DRW),  PRY(DRW),  WHT(DRW),  BYS(BCC),  MLL(BCC),  MEW(WDG)"),
                                       br(), 
                                       
-                                      #creates option for user to select which date range they want for hydrograph, does not work right now
+                                      #creates option for user to select the date range for the hydrograph, edit dates as necessary
                                       dateRangeInput(
                                         inputId = "date_range",
                                         label = "Select Date Range:",
                                         start = as.POSIXct("2018-01-01"),      
-                                        end = as.POSIXct("2023-01-01"),
+                                        end = as.POSIXct("2024-01-01"),
                                         min = as.POSIXct("2018-01-01"),      
-                                        max = as.POSIXct("2023-01-01"),
+                                        max = as.POSIXct("2024-01-01"),
                                       )),
                          
                          #this is what appears on the right side of the 'Hydrograph' tab, so it's the hydrograph, data table, and map
                          mainPanel(position = "right",
                                    plotlyOutput("graph"),
+                                   textOutput("qcstatus_text"),
                                    br(),br(),
                                    column(6,leafletOutput("map2")),
                                    column(6,dataTableOutput("data_table2")),
@@ -189,7 +215,7 @@ ui <- fluidPage(
                        )),                         
               
               #second tab with rating curves
-              tabPanel("Rating Curves",
+              tabPanel("Rating Curve",
                        
                        sidebarLayout(
                          
@@ -209,7 +235,7 @@ ui <- fluidPage(
               
               
               #third tab with map and data table
-              tabPanel("Location Map",
+              tabPanel("Map",
                        column(6, leafletOutput("map", height = "70vh")),
                        column(6, dataTableOutput("data_table"))),
               
@@ -250,59 +276,61 @@ ui <- fluidPage(
   
 )
 
-#server----------------------------------------------------------------------------------------------------------------------
+#server--------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 server <- function(input,output,session){
   
-  #hydrograph--------------------------------------------------------------------------------------------------------------------
+  #hydrograph---------------------------------------------------------------------------------------------------------------------------------------
   
   #make a reactive expression to filter the data based on the date range input
   filtered_data <- reactive({
+    
     req(input$date_range)
     
-    #precipitation data, select precipitation station based on selected streamflow station
-    precipitation_data <- if (input$select_station %in% c("BYS", "MLL")){BCC_hourly} else 
-      if (input$select_station %in% c("CLD", "PRY", "WHT")){DRW_hourly} else 
-        if (input$select_station == "MEW") {WDG_hourly}
-    
-    #this is the only way i was able to make date range input box work
-    streamflow_data <- if (input$select_station == "BYS"){BYS_Q} else
-      if (input$select_station == "CLD"){CLD_Q} else
-        if (input$select_station == "MEW"){MEW_Q} else
-          if (input$select_station == "MLL"){MLL_Q} else
-            if (input$select_station == "PRY"){PRY_Q} else
-              if (input$select_station == "WHT"){WHT_Q}
-    
+    #precipitation data, automatically select precipitation station based on selected streamflow station
+    precipitation_data <-  if (input$select_station %in% c("BYS", "MLL")){BCC_hourly} else 
+                           if (input$select_station %in% c("CLD", "PRY", "WHT")){DRW_hourly} else 
+                           if (input$select_station == "MEW") {WDG_hourly} else
+                           if (input$select_station %in% c("UDC", "LDM", "SYR")) {BVS_hourly}  
+     
     manual_streamflow_data <- if (input$select_station == "BYS"){BYS_QM} else
-      if (input$select_station == "CLD"){CLD_QM} else
-        if (input$select_station == "MEW"){MEW_QM} else
-          if (input$select_station == "MLL"){MLL_QM} else
-            if (input$select_station == "PRY"){PRY_QM} else
-              if (input$select_station == "WHT"){WHT_QM}
+                              if (input$select_station == "CLD"){CLD_QM} else
+                              if (input$select_station == "MEW"){MEW_QM} else
+                              if (input$select_station == "MLL"){MLL_QM} else
+                              if (input$select_station == "PRY"){PRY_QM} else
+                              if (input$select_station == "WHT"){WHT_QM} else
+                              if (input$select_station == "UDC"){UDC_QM} else
+                              if (input$select_station == "LDM"){LDM_QM} #else
+                              #if (input$select_station == "SYR"){SYR_QM}
+
+    discharge_stage_data <- if (input$select_station == "BYS"){BYS_D_S} else
+                            if (input$select_station == "CLD"){CLD_D_S} else
+                            if (input$select_station == "MEW_DS"){MEW_DS_D_S} else
+                            if (input$select_station == "MEW_US"){MEW_US_D_S} else
+                            if (input$select_station == "MLL"){MLL_D_S} else
+                            if (input$select_station == "PRY"){PRY_D_S} else
+                            if (input$select_station == "WHT"){WHT_D_S} else
+                            if (input$select_station == "UDC"){UDC_D_S} else
+                            if (input$select_station == "LDM"){LDM_D_S} #else
+                            #if (input$select_station == "SYR"){SYR_D_S} 
     
-    stage_data <- if (input$select_station == "BYS"){BYS_Le} else
-      if (input$select_station == "CLD"){CLD_Le} else
-        if (input$select_station == "MEW"){MEW_Le} else
-          if (input$select_station == "MLL"){MLL_Le} else
-            if (input$select_station == "PRY"){PRY_Le} else
-              if (input$select_station == "WHT"){WHT_Le}
-    
+    ratingcurve_data <- if (input$choose_station == "UDC"){"UDC_RC"} else    {"UDC_RC"}
+                
     #filter data by date range inputted by user
-    precipitation_data_filtered <- filter(precipitation_data, Date.Time >= input$date_range[1] & Date.Time <= input$date_range[2])
-    streamflow_data_filtered <- filter(streamflow_data, Date.Time >= input$date_range[1] & Date.Time <= input$date_range[2])
-    stage_data_filtered <- filter(stage_data, Date.Time >= input$date_range[1] & Date.Time <= input$date_range[2])
-    manual_streamflow_data_filtered <- filter(manual_streamflow_data, Date.Time >= input$date_range[1] & Date.Time <= input$date_range[2])
+    precipitation_data_filtered <-     filter(precipitation_data, X >= input$date_range[1] & X <= input$date_range[2])
+    discharge_stage_data_filtered <-   filter(discharge_stage_data, timestamp_UTC >= input$date_range[1] & timestamp_UTC <= input$date_range[2])
+    manual_streamflow_data_filtered <- filter(manual_streamflow_data, date.time >= input$date_range[1] & date.time <= input$date_range[2])
     
-    if (is.null(photo_table)){photo_data_filtered <- NULL } 
-    else {photo_data_filtered <- filter(photo_table, timestamp >= input$date_range[1] & timestamp <= input$date_range[2])}
+    #if (is.null(photo_table)){photo_data_filtered <- NULL } 
+    #else {photo_data_filtered <- filter(photo_table, timestamp >= input$date_range[1] & timestamp <= input$date_range[2])}
     
     #return filtered data
     list(
-      discharge = streamflow_data_filtered, 
-      level = stage_data_filtered, 
+      discharge_stage = discharge_stage_data_filtered, 
       manual_discharge = manual_streamflow_data_filtered,
       precipitation = precipitation_data_filtered,
-      photo = photo_data_filtered)
+      #photo = photo_data_filtered,
+      ratingcurve = ratingcurve_data)
   })
   
   #--------------creating the plot-------------------------------
@@ -312,70 +340,77 @@ server <- function(input,output,session){
     
     p <- plot_ly()
     
-    #if else statement is for changing plot based on what variable is selected; manual discharge and discharge will plot if discharge selected
-    #precipitation plots regardless so it is outside of the if else statement
-    if (input$var == "Discharge") {
-      
-      # Add points for manual discharge data
-      p <- add_trace(p,
-                     x = ~filtered_data()$manual_discharge$Date.Time,
-                     y = ~filtered_data()$manual_discharge$Q.cfs,
-                     type = "scatter",
-                     mode = "markers",
-                     marker = list(color = "darkgreen"),
-                     name = "Manual Discharge")
-      
-      ;
-      
-      # Add lines for discharge data
-      p <- add_trace(p,
-                     x = ~filtered_data()$discharge$Date.Time,
-                     y = ~filtered_data()$discharge$Q.cfs,
-                     type = "scatter",
-                     mode = "lines",
-                     line = list(color = '#2fa819', width = 1, dash = 'solid'),
-                     name = "Discharge")
-    } else {
-      
-      # Add lines for level data
-      p <- add_trace(p,
-                     x = ~filtered_data()$level$Date.Time,
-                     y = ~filtered_data()$level$level.in,
-                     type = "scatter",
-                     mode = "lines",
-                     line = list(color = 'red', width = 1, dash = 'solid'),
-                     name = "Level")
-      
-      ;
-      
-      print(head(filtered_data()$photo$timestamp))
-      print(head(gsub("^.*\\/", "", filtered_data()$photo$location))) #this gives the image name
-      #add points for times of photos
-      #time is for level measurement
-      if (input$select_station == "PRY") {
+    # if else statement is for changing plot based on what variable is selected; manual discharge and discharge will plot if discharge selected
+    # precipitation plots regardless so it is outside of the if else statement
+    if (!is.null(filtered_data()$manual_discharge) && nrow(filtered_data()$manual_discharge) > 0) {
+      # add_trace for manual discharge
+      if ("q.cfs" %in% colnames(filtered_data()$manual_discharge)) {
         p <- add_trace(p,
-                       x = filtered_data()$photo$timestamp,
-                       y = filtered_data()$photo$value,
+                       x = ~filtered_data()$manual_discharge$date.time,
+                       y = ~filtered_data()$manual_discharge$q.cfs,
                        type = "scatter",
                        mode = "markers",
-                       marker = list(color = "black",size=1),
-                       text = gsub("^.*\\/", "", filtered_data()$photo$location))
-      }
+                       marker = list(color = "darkgreen"),
+                       name = "Manual Discharge")
+                                                                    }
+                                                                                                   }
+    
+    if (!is.null(filtered_data()$discharge_stage) && nrow(filtered_data()$discharge_stage) > 0) {
+      #add discharge
+      if ("discharge.cfs" %in% colnames(filtered_data()$discharge_stage)) {
+        p <- add_trace(p,
+                       x = ~filtered_data()$discharge_stage$timestamp_UTC,
+                       y = ~filtered_data()$discharge_stage$discharge.cfs,
+                       type = "scatter",
+                       mode = "lines",
+                       line = list(color = '#2fa819', width = 1, dash = 'solid'),
+                       name = "Discharge")
+        # Print the value of y for discharge
+        print(filtered_data()$discharge_stage$discharge.cfs)
+        
+      } else {
+        #add stage
+        if ("level_corrected_ft" %in% colnames(filtered_data()$discharge_stage)) {
+          p <- add_trace(p,
+                         x = ~filtered_data()$discharge_stage$timestamp_UTC,
+                         y = ~filtered_data()$discharge_stage$level_corrected_ft,
+                         type = "scatter",
+                         mode = "lines",
+                         line = list(color = 'red', width = 1, dash = 'solid'),
+                         name = "Level")
+                                                                                  }
+             } 
+    
+      #  ;
+      # # add points for times of photos
+      # # time is for level measurement
+      # if (input$select_station == "PRY" && !any(is.null(filtered_data()$photo$timestamp))) {
+      #   p <- add_trace(p,
+      #                  x = filtered_data()$photo$timestamp,
+      #                  y = filtered_data()$photo$value,
+      #                  type = "scatter",
+      #                  mode = "markers",
+      #                  marker = list(color = "black",size=1),
+      #                  text = gsub("^.*\\/", "", filtered_data()$photo$location))
+      # }
     }
     
-    #add bars for precipitation
-    p <- add_bars(p,
-                  x = filtered_data()$precipitation$Date.Time,
-                  y = filtered_data()$precipitation$rain_in,
-                  yaxis = "y2",
-                  marker = list(color = "blue", width = 1),
-                  name = 'Precipitation')
-    
+    # add bars for precipitation
+    if (!any(is.null(filtered_data()$precipitation$Tot))) {
+      p <- add_bars(p,
+                    x = filtered_data()$precipitation$X,
+                    y = filtered_data()$precipitation$Tot,
+                    yaxis = "y2",
+                    marker = list(color = "blue", width = 1),
+                    name = 'Precipitation')
+    }
+
     #if else statement to switch between discharge and level y-axis; x-axis and y-axis2 (right side) stay the same
     p <- layout(p,
                 xaxis = list(title = "Time (15 minute intervals)"),
                 yaxis = if (input$var == "Discharge" | input$var == "Manual Discharge") {dischargeAx} else {levelAx},
                 yaxis2 = rainAx)
+    
     p <- p %>% onRender("function(el, x) {
       // when hovering over an element, do something
       el.on('plotly_hover', function(d) {
@@ -389,32 +424,42 @@ server <- function(input,output,session){
         // image is stored locally
         image_location = 'https://raw.githubusercontent.com/seogle/PRY_thumbnails/main/PRY_all/' + path
         console.log(image_location);
-    
+
         // define image to be shown
         var img = {
           // location of image
-          source: image_location, 
+          source: image_location,
           // top-left corner
-          x: 0.4,
+          x: 0,
           y: 1,
-          sizex: 0.2,
-          sizey: 0.2,
+          sizex: 0.3,
+          sizey: 0.3,
           xref: 'paper',
           yref: 'paper'
         };
 
-        // show image and annotation 
+        // show image and annotation
         Plotly.relayout(el.id, {
-            images: [img] 
+            images: [img]
         });
       })
     }
     ")
-    
-    return(p)
+
+     return(p)
     
   })
   
+  #provisional vs approved------------------------------------------------------------------------------------------------------
+  output$qcstatus_text <- renderText({
+    data <- filtered_data()
+    
+    if ("qc_status" %in% colnames(data$discharge_stage)) {
+      qc_status <- unique(data$discharge_stage$qc_status)
+      status <- if ("Provisional" %in% qc_status) "Provisional" else "Approved"
+      return(status)
+    } else {return("QC Status Unknown")}
+  })
   
   #rating curve plot for second tab-----------------------------------------------------------------------------------------------------------
   
@@ -422,33 +467,35 @@ server <- function(input,output,session){
     
     p <- plot_ly()
     
-    #add manual discharge points to graph
-    p <- add_trace(p,
-                   x = ~filtered_data()$manual_discharge$Date.Time,
-                   y = ~filtered_data()$manual_discharge$Q.cfs,
-                   type = "scatter",
-                   mode = "markers",
-                   marker = list(color = "darkgreen"),
-                   name = "Manual Discharge")
+    # Convert x and y data to data frames
+    x_data <- data.frame(Level.ft.corrected = filtered_data()$ratingcurve$Level.ft.corrected)
+    y_data <- data.frame(Discharge.cfs = filtered_data()$ratingcurve$Discharge.cfs)
     
-    #add rating curve connecting manual discharge points to graph
+    #add rating curve
     p <- add_trace(p,
-                   x = ~filtered_data()$manual_discharge$Date.Time,
-                   y = ~filtered_data()$manual_discharge$Q.cfs,
+                   x = filtered_data$ratingcurve$Level.ft.corrected,
+                   y = filtered_data$ratingcurve$Level.ft.corrected,
                    type = "scatter",
                    mode = "lines",
                    marker = list(color = "darkgreen"),
                    name = "Rating Curve")
     
-    #labeling axes of graph
+    #add manual discharge points
+    p <- add_trace(p,
+                   x = ~filtered_data()$ratingcurve$Level.ft.corrected,
+                   y = ~filtered_data()$ratingcurve$Discharge.cfs,
+                   type = "scatter",
+                   mode = "markers",  # Change mode to "markers" for individual points
+                   marker = list(color = "darkgreen"),
+                   name = "Manual Discharge Points")
+    
+    #axes
     p <- layout(p,
                 xaxis = list(title = "Stage (ft)"),
-                yaxis = list(title = "Discharge (cfs)")
-    )
+                yaxis = list(title = "Discharge (cfs)"))
     
     return(p)
-    
-  })
+      })
   
   #map of stations for second tab-------------------------------------------------------------------------------------------------------------
   
@@ -457,8 +504,8 @@ server <- function(input,output,session){
   
   output$map <- renderLeaflet({
     leaflet(stat_location) %>%
-      addProviderTiles("Esri.WorldTopoMap") %>%              #this is what the map looks like (many different options, can change)                      
-      setView(map, lng = -119.7871, lat = 36.7378, zoom = 6)  %>%   #how zoomed out the map is when it first loads, made it so that all stations show up       
+      addProviderTiles("Esri.WorldTopoMap") %>%              #basemap, can change if desired                    
+      setView(map, lng = -119.7871, lat = 36.7378, zoom = 6)  %>%   #how zoomed out the map is when it first loads      
       #adding points for the stations
       addCircleMarkers(lng=~stat_location$Longitude, lat=~stat_location$Latitude,         
                        stroke = FALSE, fill=TRUE, fillOpacity=1,
@@ -473,8 +520,7 @@ server <- function(input,output,session){
       addLegend("topleft", pal=RdYlBu, values=stat_location$Site.Type, title="Site Type",opacity=1)
   })
   
-  #map of stations for first tab-------------------------------------------------------------------------------------------------------------
-  #code for this map is different because it zooms to the selected station and only adds a marker for that one
+  #map on first tab-------------------------------------------------------------------------------------------------------------
   
   filtered <- reactive({stat_location[stat_location$CW3E.Code == input$select_station,]})
   
@@ -492,7 +538,7 @@ server <- function(input,output,session){
                              "Watershed:", fdata$Watershed, "<br>",
                              "Elevation:", fdata$Elevation..Approx..m.,"m", "<br>",
                              "(",fdata$Latitude,fdata$Longitude,")" ,options = popupOptions(closeButton = FALSE))) %>%
-      flyTo(lng = fdata$Longitude, lat = fdata$Latitude, zoom = 10)
+      flyTo(lng = fdata$Longitude, lat = fdata$Latitude, zoom = 10)    #this 'flies' to the station selected
   })
   
   #data table under station map-----------------------------------------------------------------------------------------------------
