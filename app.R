@@ -14,6 +14,8 @@ library(config)
 library(htmlwidgets)
 library(bslib)
 library(data.table)
+library(profvis)
+library(lubridate)
 
 #data loading and formatting----------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -28,57 +30,49 @@ stat_location <- read.csv(config$stat_location)
 stat_location2 <- read.csv(config$stat_location2)
 
 #precipitation data loading and processing------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#NEED TO CHANGE THIS TO DIFFERENT FILES FOLLOWING THIS FORMAT (CW3E_DataShare/CW3E_SurfaceMetObs/site/2024/Hourly/)
+#we need to use these because Brian said that they will be kept updated, while the other ones might be phased out
+#the files referenced above have different column headers from the ones the script currently uses
 
-#read in precipitation data
-BVS <- read.csv("//Skyriver.ucsd.edu/CW3E_data/CW3E_SurfaceMet_Archive/BVS/BrownsValleySchool_TwoMin.dat",skip=3,header=TRUE,sep = ",",fill=TRUE)
-BCC <- read.csv("//Skyriver.ucsd.edu/CW3E_data/CW3E_SurfaceMet_Archive/BCC/BoyesCreekCanyon_TwoMinWS.dat",skip=3,header=TRUE,sep = ",",fill=TRUE)
-DRW <- read.csv("//Skyriver.ucsd.edu/CW3E_data/CW3E_SurfaceMet_Archive/DRW/Deerwood_TwoMinWS.dat",skip=3,header=TRUE,sep = ",",fill=TRUE)
-WDG <- read.csv("//Skyriver.ucsd.edu/CW3E_data/CW3E_SurfaceMet_Archive/WDG/WindyGap_TwoMinWS.dat",skip=3,header=TRUE,sep = ",",fill=TRUE)
+#read in hourly precipitation data
+BVS <- fread("//Skyriver.ucsd.edu/CW3E_data/CW3E_DataShare/CW3E_SurfaceMetObs/BVS/BVS_HourlyData_Full.txt", header = FALSE, sep = ",")
+BCC <- fread("//Skyriver.ucsd.edu/CW3E_data/CW3E_DataShare/CW3E_SurfaceMetObs/BCC/BCC_HourlyData_Full.txt", header = FALSE, sep = ",")
+DRW <- fread("//Skyriver.ucsd.edu/CW3E_data/CW3E_DataShare/CW3E_SurfaceMetObs/DRW/DRW_HourlyData_Full.txt", header = FALSE, sep = ",")
+WDG <- fread("//Skyriver.ucsd.edu/CW3E_data/CW3E_DataShare/CW3E_SurfaceMetObs/WDG/WDG_HourlyData_Full.txt", header = FALSE, sep = ",")
 
-#keep only precipitation
-BVS <- BVS %>%  select(X, Tot)
-BCC <- BCC %>%  select(X, Tot)
-DRW <- DRW %>%  select(X, Tot)
-WDG <- WDG %>%  select(X, Tot)
+#keep only precipitation and date/time columns
+BVS <- BVS %>%  select(V1,V2,V3,V4,V8)
+BCC <- BCC %>%  select(V1,V2,V3,V4,V8)
+DRW <- DRW %>%  select(V1,V2,V3,V4,V8)
+WDG <- WDG %>%  select(V1,V2,V3,V4,V8)
 
 #convert precipitation units from mm to inches
-BVS <- BVS %>% mutate(Tot = Tot * 0.0393701)
-BCC <- BCC %>% mutate(Tot = Tot * 0.0393701)
-DRW <- DRW %>% mutate(Tot = Tot * 0.0393701)
-WDG <- WDG %>% mutate(Tot = Tot * 0.0393701)
+BVS <- BVS %>% mutate(V8 = V8 * 0.0393701)
+BCC <- BCC %>% mutate(V8 = V8 * 0.0393701)
+DRW <- DRW %>% mutate(V8 = V8 * 0.0393701)
+WDG <- WDG %>% mutate(V8 = V8 * 0.0393701)
 
-#change timestamps to UTC
-BVS$X <- as.POSIXct(BVS$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
-BCC$X <- as.POSIXct(BCC$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
-DRW$X <- as.POSIXct(DRW$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
-WDG$X <- as.POSIXct(WDG$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
-
-#change data to hourly
-BVS_hourly <- BVS %>%  group_by(X = cut(X, "60 mins")) %>%  summarise("Tot" = sum(!!sym("Tot")))
-BCC_hourly <- BCC %>%  group_by(X = cut(X, "60 mins")) %>%  summarise("Tot" = sum(!!sym("Tot")))
-DRW_hourly <- DRW %>%  group_by(X = cut(X, "60 mins")) %>%  summarise("Tot" = sum(!!sym("Tot")))
-WDG_hourly <- WDG %>%  group_by(X = cut(X, "60 mins")) %>%  summarise("Tot" = sum(!!sym("Tot")))
-
-#change timestamps to UTC (have to do this step again b/c changing data to hourly affects format)
-BVS_hourly$X <- as.POSIXct(BVS_hourly$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
-BCC_hourly$X <- as.POSIXct(BCC_hourly$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
-DRW_hourly$X <- as.POSIXct(DRW_hourly$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
-WDG_hourly$X <- as.POSIXct(WDG_hourly$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
+#convert year/month/day/hour columns to posixct format
+BVS$datetime <- as.POSIXct(paste(BVS$V1, BVS$V2, BVS$V3, BVS$V4, sep = "-"), format = "%Y-%m-%d-%H", tz = "UTC")
+BCC$datetime <- as.POSIXct(paste(BCC$V1, BCC$V2, BCC$V3, BCC$V4, sep = "-"), format = "%Y-%m-%d-%H", tz = "UTC")
+DRW$datetime <- as.POSIXct(paste(DRW$V1, DRW$V2, DRW$V3, DRW$V4, sep = "-"), format = "%Y-%m-%d-%H", tz = "UTC")
+WDG$datetime <- as.POSIXct(paste(WDG$V1, WDG$V2, WDG$V3, WDG$V4, sep = "-"), format = "%Y-%m-%d-%H", tz = "UTC")
 
 #discharge and stage and photo data loading and processing-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-sites <- c("BYS","CLD","LDM","MEW_DS","MEW_US","MLL","PRY","UDC","WHT") #took out SYR since data not updated
+sites <- c("BYS","CLD","LDM","MEW_DS","MEW_US","MLL","PRY","UDC","WHT") #took out SYR since data not updated yet
 
 for (site in sites) {
   
-  #discharge and stage data
-  discharge_stage_data <- read.csv(paste(config$discharge_stage_path, site,"/Processed/ALL.",site,".Level.Discharge.csv",sep = ""), header = TRUE)
+  #discharge and stage data combined
+  discharge_stage_data <- fread(paste(config$discharge_stage_path, site,"/Processed/ALL.",site,".Level.Discharge.csv",sep = ""), header = TRUE)
   #format timestamps 
   discharge_stage_data$timestamp_UTC <- as.POSIXct(discharge_stage_data$timestamp_UTC, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
   #change stage units from feet to inches
   #discharge_stage_data$Level.ft.corrected <- 12*(discharge_stage_data$Level.ft.corrected)
   
-  # Replace NULL values with the date from the next row and time set to "00:00:00"
+  #replace NULL values with the date from the next row and time set to "00:00:00"
+  #this is because the specific time 00:00:00 shows up NULL for some reason, so just fixing that error 
   for (i in 2:(nrow(discharge_stage_data) - 1)) {
     if (is.na(discharge_stage_data$timestamp_UTC[i])) {
       next_row_timestamp <- discharge_stage_data$timestamp_UTC[i + 1]
@@ -121,7 +115,8 @@ for (site in sites) {
   #assign(paste(site, "_Ph", sep = ""), photo_table)
 }
 
-#rating curve data, just using UDC for now to test out rating curve
+#rating curve data, just using UDC for now to test out rating curve----------------------------------------------------------------------
+#this currently doesn't work
 stream_sites <- ("UDC")
 for (stream_site in stream_sites) {
   ratingcurve_data <- read.csv(paste(config$ratingcurve_data_path, paste("UDC_Rating_Curve.csv", sep = ""), sep = ""), header = TRUE)
@@ -142,6 +137,7 @@ dischargeAx = list(side="left",title="Discharge (ft³/s)",showgrid=FALSE)
 
 #create theme to match CW3E website
 #custom_theme <- bs_theme(bg="#eaeaea", fg="#206c8c", primary="#206c8c", primary_light="#206c8c",base_font="Times New Roman", "font-size-base"="1.0rem", border_color="#1e6b8b")
+#this custom theme made the formatting weird 
 
 ui <- fluidPage(
   
@@ -205,7 +201,7 @@ ui <- fluidPage(
                          #this is what appears on the right side of the 'Hydrograph' tab, so it's the hydrograph, data table, and map
                          mainPanel(position = "right",
                                    plotlyOutput("graph"),
-                                   textOutput("qcstatus_text"),
+                                   textOutput("Quality Control Status of Data:","qcstatus_text"),
                                    br(),br(),
                                    column(6,leafletOutput("map2")),
                                    column(6,dataTableOutput("data_table2")),
@@ -288,10 +284,10 @@ server <- function(input,output,session){
     req(input$date_range)
     
     #precipitation data, automatically select precipitation station based on selected streamflow station
-    precipitation_data <-  if (input$select_station %in% c("BYS", "MLL")){BCC_hourly} else 
-                           if (input$select_station %in% c("CLD", "PRY", "WHT")){DRW_hourly} else 
-                           if (input$select_station == "MEW") {WDG_hourly} else
-                           if (input$select_station %in% c("UDC", "LDM", "SYR")) {BVS_hourly}  
+    precipitation_data <-  if (input$select_station %in% c("BYS", "MLL")){BCC} else 
+                           if (input$select_station %in% c("CLD", "PRY", "WHT")){DRW} else 
+                           if (input$select_station == "MEW") {WDG} else
+                           if (input$select_station %in% c("UDC", "LDM", "SYR")) {BVS}  
      
     manual_streamflow_data <- if (input$select_station == "BYS"){BYS_QM} else
                               if (input$select_station == "CLD"){CLD_QM} else
@@ -357,17 +353,16 @@ server <- function(input,output,session){
     
     if (!is.null(filtered_data()$discharge_stage) && nrow(filtered_data()$discharge_stage) > 0) {
       #add discharge
-      if ("discharge.cfs" %in% colnames(filtered_data()$discharge_stage)) {
-        p <- add_trace(p,
-                       x = ~filtered_data()$discharge_stage$timestamp_UTC,
-                       y = ~filtered_data()$discharge_stage$discharge.cfs,
-                       type = "scatter",
-                       mode = "lines",
-                       line = list(color = '#2fa819', width = 1, dash = 'solid'),
-                       name = "Discharge")
-        # Print the value of y for discharge
-        print(filtered_data()$discharge_stage$discharge.cfs)
-        
+      if (input$var == "Discharge") {
+        if ("discharge.cfs" %in% colnames(filtered_data()$discharge_stage)) {
+          p <- add_trace(p,
+                         x = ~filtered_data()$discharge_stage$timestamp_UTC,
+                         y = ~filtered_data()$discharge_stage$discharge.cfs,
+                         type = "scatter",
+                         mode = "lines",
+                         line = list(color = '#2fa819', width = 1, dash = 'solid'),
+                         name = "Discharge")
+        }
       } else {
         #add stage
         if ("level_corrected_ft" %in% colnames(filtered_data()$discharge_stage)) {
@@ -398,8 +393,8 @@ server <- function(input,output,session){
     # add bars for precipitation
     if (!any(is.null(filtered_data()$precipitation$Tot))) {
       p <- add_bars(p,
-                    x = filtered_data()$precipitation$X,
-                    y = filtered_data()$precipitation$Tot,
+                    x = filtered_data()$precipitation$datetime,
+                    y = filtered_data()$precipitation$V8,
                     yaxis = "y2",
                     marker = list(color = "blue", width = 1),
                     name = 'Precipitation')
@@ -445,7 +440,6 @@ server <- function(input,output,session){
       })
     }
     ")
-
      return(p)
     
   })
