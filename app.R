@@ -14,11 +14,13 @@ library(config)
 library(htmlwidgets)
 library(bslib)
 library(data.table)
+library(readr)
+library(LaF)
 
 #data loading and formatting----------------------------------------------------------------------------------------------------------------------------------------------------
-
+setwd("C:/Users/cw3e/Documents/GitHub/StreamflowDashboard/")
 #set environment and retrieve config file, change "anahita" to your environment (see config file in GitHub for clarity)
-Sys.setenv(R_CONFIG_ACTIVE = "anahita")
+Sys.setenv(R_CONFIG_ACTIVE = "sarah_b")
 config <- config::get()                       
 setwd(config$root_dir)
 
@@ -29,51 +31,68 @@ stat_location2 <- read.csv(config$stat_location2)
 
 #precipitation data loading and processing------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#read in precipitation data
-BVS <- read.csv("//Skyriver.ucsd.edu/CW3E_data/CW3E_SurfaceMet_Archive/BVS/BrownsValleySchool_TwoMin.dat",skip=3,header=TRUE,sep = ",",fill=TRUE)
-BCC <- read.csv("//Skyriver.ucsd.edu/CW3E_data/CW3E_SurfaceMet_Archive/BCC/BoyesCreekCanyon_TwoMinWS.dat",skip=3,header=TRUE,sep = ",",fill=TRUE)
-DRW <- read.csv("//Skyriver.ucsd.edu/CW3E_data/CW3E_SurfaceMet_Archive/DRW/Deerwood_TwoMinWS.dat",skip=3,header=TRUE,sep = ",",fill=TRUE)
-WDG <- read.csv("//Skyriver.ucsd.edu/CW3E_data/CW3E_SurfaceMet_Archive/WDG/WindyGap_TwoMinWS.dat",skip=3,header=TRUE,sep = ",",fill=TRUE)
+
+# read in precip data using read.csv:
+#    user  system elapsed 
+#    66.92    1.62  250.98
+print('Reading in Twomin data...')
+BVS <- read.csv(paste0(config$precip_data_path,"/BrownsValleySchool_TwoMin.dat"),skip=3,header=TRUE,sep = ",",fill=TRUE)
+#BCC <- read.csv(paste0(config$precip_data_path,"/BoyesCreekCanyon_TwoMinWS.dat"),skip=3,header=TRUE,sep = ",",fill=TRUE)
+#DRW <- read.csv(paste0(config$precip_data_path,"/Deerwood_TwoMinWS.dat"),skip=3,header=TRUE,sep = ",",fill=TRUE)
+#WDG <- read.csv("//Skyriver.ucsd.edu/CW3E_data/CW3E_SurfaceMet_Archive/WDG/WindyGap_TwoMinWS.dat",skip=3,header=TRUE,sep = ",",fill=TRUE)
+print('Done.')
+
+
+#For all the timestamp change things below:
+# user  system elapsed 
+#21.30    0.35   21.72
 
 #keep only precipitation
 BVS <- BVS %>%  select(X, Tot)
-BCC <- BCC %>%  select(X, Tot)
-DRW <- DRW %>%  select(X, Tot)
-WDG <- WDG %>%  select(X, Tot)
+#BCC <- BCC %>%  select(X, Tot)
+#DRW <- DRW %>%  select(X, Tot)
+#WDG <- WDG %>%  select(X, Tot)
 
 #convert precipitation units from mm to inches
 BVS <- BVS %>% mutate(Tot = Tot * 0.0393701)
-BCC <- BCC %>% mutate(Tot = Tot * 0.0393701)
-DRW <- DRW %>% mutate(Tot = Tot * 0.0393701)
-WDG <- WDG %>% mutate(Tot = Tot * 0.0393701)
+#BCC <- BCC %>% mutate(Tot = Tot * 0.0393701)
+#DRW <- DRW %>% mutate(Tot = Tot * 0.0393701)
+#WDG <- WDG %>% mutate(Tot = Tot * 0.0393701)
 
 #change timestamps to UTC
 BVS$X <- as.POSIXct(BVS$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
-BCC$X <- as.POSIXct(BCC$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
-DRW$X <- as.POSIXct(DRW$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
-WDG$X <- as.POSIXct(WDG$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
+#BCC$X <- as.POSIXct(BCC$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
+#DRW$X <- as.POSIXct(DRW$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
+#WDG$X <- as.POSIXct(WDG$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
 
 #change data to hourly
 BVS_hourly <- BVS %>%  group_by(X = cut(X, "60 mins")) %>%  summarise("Tot" = sum(!!sym("Tot")))
-BCC_hourly <- BCC %>%  group_by(X = cut(X, "60 mins")) %>%  summarise("Tot" = sum(!!sym("Tot")))
-DRW_hourly <- DRW %>%  group_by(X = cut(X, "60 mins")) %>%  summarise("Tot" = sum(!!sym("Tot")))
-WDG_hourly <- WDG %>%  group_by(X = cut(X, "60 mins")) %>%  summarise("Tot" = sum(!!sym("Tot")))
+#BCC_hourly <- BCC %>%  group_by(X = cut(X, "60 mins")) %>%  summarise("Tot" = sum(!!sym("Tot")))
+#DRW_hourly <- DRW %>%  group_by(X = cut(X, "60 mins")) %>%  summarise("Tot" = sum(!!sym("Tot")))
+#WDG_hourly <- WDG %>%  group_by(X = cut(X, "60 mins")) %>%  summarise("Tot" = sum(!!sym("Tot")))
 
 #change timestamps to UTC (have to do this step again b/c changing data to hourly affects format)
 BVS_hourly$X <- as.POSIXct(BVS_hourly$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
-BCC_hourly$X <- as.POSIXct(BCC_hourly$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
-DRW_hourly$X <- as.POSIXct(DRW_hourly$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
-WDG_hourly$X <- as.POSIXct(WDG_hourly$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
+#BCC_hourly$X <- as.POSIXct(BCC_hourly$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
+#DRW_hourly$X <- as.POSIXct(DRW_hourly$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
+#WDG_hourly$X <- as.POSIXct(WDG_hourly$X, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
+
 
 #discharge and stage and photo data loading and processing-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-sites <- c("BYS","CLD","LDM","MEW_DS","MEW_US","MLL","PRY","UDC","WHT") #took out SYR since data not updated
+#sites <- c("BYS","CLD","LDM","MEW_DS","MEW_US","MLL","PRY","UDC","WHT") #took out SYR since data not updated
+sites <- c("UDC","BYS","CLD")
 
-for (site in sites) {
+execution_time <- system.time({
   
-  #discharge and stage data
-  discharge_stage_data <- read.csv(paste(config$discharge_stage_path, site,"/Processed/ALL.",site,".Level.Discharge.csv",sep = ""), header = TRUE)
-  #format timestamps 
+#  user  system elapsed 
+#  22.94    4.21   85.51
+for (site in sites) {
+  print("Reading MasterTable_Processed...")
+  #discharge and stage data #this takes kinda a while
+  discharge_stage_data <- read.csv(paste(config$discharge_stage_path, site,"/Processed/",site,"_MasterTable_Processed.csv",sep = ""), header = TRUE)
+  discharge_stage_data <- discharge_stage_data[!is.na(discharge_stage_data$timestamp_UTC) & discharge_stage_data$timestamp_UTC != "NA", ]
+    #format timestamps 
   discharge_stage_data$timestamp_UTC <- as.POSIXct(discharge_stage_data$timestamp_UTC, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
   #change stage units from feet to inches
   #discharge_stage_data$Level.ft.corrected <- 12*(discharge_stage_data$Level.ft.corrected)
@@ -85,6 +104,8 @@ for (site in sites) {
       discharge_stage_data$timestamp_UTC[i] <- as.POSIXct(paste0(format(next_row_timestamp, "%Y-%m-%d"), " 00:00:00"), tz = "UTC")
     }
   }
+  
+  print("Reading manual discharge data...")
   
   #manual discharge data  #for MEW, DS and US sites have different rating curve discharges, but same manual discharge
   if (site == "MEW_DS" | site == "MEW_US") {manual_discharge_data <- read.csv(paste(config$manual_discharge_path, "MEW/Manual_Discharge/MEW_manual_q_final.csv", sep = ""), header = TRUE)}
@@ -120,7 +141,10 @@ for (site in sites) {
   assign(paste(site, "_QM", sep = ""), manual_discharge_data)
   #assign(paste(site, "_Ph", sep = ""), photo_table)
 }
-
+})
+print(execution_time)
+  
+  
 #rating curve data, just using UDC for now to test out rating curve
 stream_sites <- ("UDC")
 for (stream_site in stream_sites) {
@@ -468,13 +492,17 @@ server <- function(input,output,session){
     p <- plot_ly()
     
     # Convert x and y data to data frames
-    x_data <- data.frame(Level.ft.corrected = filtered_data()$ratingcurve$Level.ft.corrected)
-    y_data <- data.frame(Discharge.cfs = filtered_data()$ratingcurve$Discharge.cfs)
+    #x_data <- data.frame(Level.ft.corrected = filtered_data()$ratingcurve$Level.ft.corrected)
+    #y_data <- data.frame(Discharge.cfs = filtered_data()$ratingcurve$Discharge.cfs)
+    x_data <- data.frame(Level.ft.corrected = ratingcurve_data$Level.ft.corrected)
+    y_data <- data.frame(Discharge.cfs = ratingcurve_data$Discharge.cfs)
     
     #add rating curve
     p <- add_trace(p,
-                   x = filtered_data$ratingcurve$Level.ft.corrected,
-                   y = filtered_data$ratingcurve$Level.ft.corrected,
+                   #x = filtered_data$ratingcurve$Level.ft.corrected,
+                   #y = filtered_data$ratingcurve$Level.ft.corrected,
+                   x = ratingcurve_data$Level.ft.corrected,
+                   y = ratingcurve_data$Discharge.cfs,
                    type = "scatter",
                    mode = "lines",
                    marker = list(color = "darkgreen"),
@@ -482,8 +510,10 @@ server <- function(input,output,session){
     
     #add manual discharge points
     p <- add_trace(p,
-                   x = ~filtered_data()$ratingcurve$Level.ft.corrected,
-                   y = ~filtered_data()$ratingcurve$Discharge.cfs,
+                   #x = ~filtered_data()$ratingcurve$Level.ft.corrected,
+                   #y = ~filtered_data()$ratingcurve$Discharge.cfs,
+                   x = ~filtered_data()$manual_discharge$date.time,
+                   y = ~filtered_data()$manual_discharge$q.cfs,
                    type = "scatter",
                    mode = "markers",  # Change mode to "markers" for individual points
                    marker = list(color = "darkgreen"),
