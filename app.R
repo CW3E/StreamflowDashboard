@@ -19,7 +19,7 @@ library(LaF)
 
 
 #data loading and formatting----------------------------------------------------------------------------------------------------------------------------------------------------
-setwd("C:/Users/cw3e/Documents/GitHub/StreamflowDashboard/")
+#setwd("C:/Users/cw3e/Documents/GitHub/StreamflowDashboard/")
 #set environment and retrieve config file, change "anahita" to your environment (see config file in GitHub for clarity)
 Sys.setenv(R_CONFIG_ACTIVE = "sarah_b")
 config <- config::get()                       
