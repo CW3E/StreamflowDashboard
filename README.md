@@ -1,5 +1,5 @@
 # Streamflow Dashboard Guide
-Contact Anahita Jensen (a7jensen@ucsd.edu, anahita.onyx@gmail.com) with questions.
+Contact Anahita Jensen (a7jensen@ucsd.edu, anahita.onyx@gmail.com) with questions. This document (https://docs.google.com/document/d/11hI2te0fp6jeKO2PV6NuxfdcJ0sn-8FwrFew9Yzt_Ek/edit) outlines the next steps for the app. 
 
 # Description
 The app displays streamflow (discharge, manual discharge, stage) and precipitation data collected by CW3E at various sites across California. The app was created using the Shiny package in R. The user can customize the hydrograph by choosing variables and locations to suit their purposes. 
